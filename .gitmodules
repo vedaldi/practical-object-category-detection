@@ -1,0 +1,3 @@
+[submodule "vlfeat"]
+	path = vlfeat
+	url = vlfeat@vlfeat.org:vlfeat.git
