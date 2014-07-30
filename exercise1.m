@@ -1,35 +1,54 @@
 
 setup ;
 
-load('data/signs-train.mat', trainImages, trainLabels) ;
+load('data/signs-train.mat', ...
+  'trainImages', ...
+  'trainLabels', ...
+  'trainBoxes', ...
+  'testImages', ...
+  'testLabels', ...
+  'testBoxes') ;
 hogCellSize = 8 ;
 targetClass = 1 ;
 
 % Compute HOG features
-for i = 1:numel(trainImages)
+trainHog = {} ;
+for i = 1:size(trainImages,4)
   trainHog{i} = vl_hog(trainImages(:,:,:,i), hogCellSize) ;
 end
-trainHog= cat(3, trainHog{:}) ;
+trainHog= cat(4, trainHog{:}) ;
 modelWidth = size(trainHog, 2) ;
 modelHeight = size(trainHog, 1) ;
 
 % Visualize the training images
 figure(1) ; clf ;
-vl_imarraysc(trainImages(:, :, :, trainLabels == targetClass)) ;
+%vl_imarraysc(trainImages(:, :, :, trainLabels == targetClass)) ;
+imagesc(mean(trainImages(:, :, :, trainLabels == targetClass),4)) ;
+axis equal ;
 
 % Train a simple model
 w = ...
-  mean(trainHog(:,:,trainLabels == targetClass), 3) - ...
-  mean(trainHog, 3) ;
+  mean(trainHog(:,:,:,trainLabels == targetClass), 4) - ...
+  mean(trainHog, 4) ;
+
+w = ...
+  mean(trainHog(:,:,:,trainLabels == targetClass), 4) ;
+%- ...
+%  mean(trainHog, 4) ;
+
+figure(2) ; clf ;
+imagesc(vl_hog('render', w)) ;
+colormap gray ;
+axis equal ;
 
 % Evaluate the model on one image
 im = imread('data/signs-sample-image.jpg') ;
 hog = vl_hog(im2single(im), hogCellSize) ;
 scores = vl_nnconv(hog, w, []) ;
 
-[best, bestIndex] = max(scores) ;
+[best, bestIndex] = max(scores(:)) ;
 
-[hy, hx] = ind2sub(size(hog), bestIndex) ;
+[hy, hx] = ind2sub(size(scores), bestIndex) ;
 x = (hx - 1) * hogCellSize + 1 ;
 y = (hy - 1) * hogCellSize + 1 ;
 box = [
@@ -38,11 +57,14 @@ box = [
   x + hogCellSize * modelWidth - 0.5 ;
   y + hogCellSize * modelHeight - 0.5 ;]
 
-figure(2) ; clf ;
+figure(3) ; clf ;
 imagesc(im) ; axis equal ;
 hold on ;
-vl_plotbox(box,'linewidth', 3) ;
+vl_plotbox(box, 'g', 'linewidth', 5) ;
 
+figure(4) ; clf ;
+imagesc(scores) ;
+colormap gray ;
   
 
 

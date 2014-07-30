@@ -1,3 +1,6 @@
 [submodule "vlfeat"]
 	path = vlfeat
 	url = vlfeat@vlfeat.org:vlfeat.git
+[submodule "matconvnet"]
+	path = matconvnet
+	url = ssh://git@bitbucket.org/vedaldi/matconvnet.git
