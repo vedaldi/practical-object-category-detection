@@ -48,6 +48,8 @@ trainHog = cat(4, trainHog{:}) ;
 
 w = mean(trainHog(:,:,:,trainLabels == targetClass), 4) ;
 
+save('data/signs-model-1.mat', 'w') ;
+
 figure(2) ; clf ;
 imagesc(vl_hog('render', w)) ;
 colormap gray ;

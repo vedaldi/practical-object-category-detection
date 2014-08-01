@@ -23,6 +23,7 @@ trainHog = cat(4, trainHog{:}) ;
 
 % Learn a trivial HOG model (see Step 1.3)
 w = mean(trainHog(:,:,:,trainLabels == targetClass), 4) ;
+save('data/signs-model-1.mat', 'w') ;
 
 figure(2) ; clf ;
 imagesc(vl_hog('render', w)) ;
@@ -66,14 +67,17 @@ neg = {} ;
 modelWidth = size(trainHog, 2) ;
 modelHeight = size(trainHog, 1) ;
 for t=1:10
+  % Get the HOG features of a training image
   t = imread(trainImages{16}) ;
-  t = im2single(t) ;
-  
+  t = im2single(t) ;  
   hog = vl_hog(t, hogCellSize) ;
+  
+  % Sample uniformly 100 HOG patches
+  % Assume that these are negative (almost certain)
   width = size(hog,2) - modelWidth + 1 ;
   height = size(hog,1) - modelHeight + 1 ;
   index = vl_colsubset(1:width*height, 100, 'uniform') ;
-  
+
   for j=1:numel(index)
     [hy, hx] = ind2sub([height width], index(j)) ;
     sx = hx + (0:modelWidth-1) ;
@@ -117,3 +121,7 @@ imagesc(im) ; axis equal ;
 hold on ;
 vl_plotbox(detection, 'g', 'linewidth', 5) ;
 title('SVM detector output') ;
+
+save('data/signs-model-2.mat', 'w') ;
+
+
