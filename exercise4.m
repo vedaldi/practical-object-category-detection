@@ -1,20 +1,16 @@
+% EXERCISE4
 setup ;
 
-load('data/signs-train.mat', ...
-  'trainImages', ...
-  'trainBoxes', ...
-  'trainBoxImages', ...
-  'trainBoxLabels', ...
-  'trainBoxPatches', ...
-  'testImages', ...
-  'testBoxes', ...
-  'testBoxImages', ...
-  'testBoxLabels', ...
-  'testBoxPatches') ;
+%targetClass = 1 ;
+%targetClass = 'prohibitory' ;
+targetClass = 'mandatory' ;
+%targetClass = 'danger' ;
 
+numHardNegativeMiningIterations = 7 ;
+schedule = [1 2 5 5 100 100 100] ;
+
+% Scale space configuration
 hogCellSize = 6 ;
-targetClass = 1 ;
-numHardNegativeMiningIterations = 3 ;
 minScale = -1 ;
 maxScale = 3 ;
 numOctaveSubdivisions = 3 ;
@@ -23,25 +19,8 @@ scales = 2.^linspace(...
   maxScale,...
   numOctaveSubdivisions*(maxScale-minScale+1)) ;
 
-% Select only the target class
-ok = ismember(trainBoxLabels, targetClass) ;
-trainBoxes = trainBoxes(:,ok) ;
-trainBoxImages = trainBoxImages(ok) ;
-trainBoxLabels = trainBoxLabels(ok) ;
-trainBoxPatches = trainBoxPatches(:,:,:,ok) ;
-
-ok = ismember(testBoxLabels, targetClass) ;
-testBoxes = testBoxes(:,ok) ;
-testBoxImages = testBoxImages(ok) ;
-testBoxLabels = testBoxLabels(ok) ;
-testBoxPatches = testBoxPatches(:,:,:,ok) ;
-
-% Select a subset of training and testing images
-[~,perm] = sort(ismember(trainImages, trainBoxImages),'descend') ;
-trainImages = trainImages(vl_colsubset(perm', 3, 'beginning')) ;
-
-[~,perm] = sort(ismember(testImages, testBoxImages),'descend') ;
-testImages = testImages(vl_colsubset(perm', 20, 'beginning')) ;
+% Load data
+loadData(targetClass) ;
 
 % Compute HOG features of examples (see Step 1.2)
 trainBoxHog = {} ;
@@ -57,13 +36,13 @@ modelHeight = size(trainBoxHog,1) ;
 % -------------------------------------------------------------------------
 
 % Initial positive and negative data
-pos = trainBoxHog(:,:,:,trainBoxLabels == targetClass) ;
+pos = trainBoxHog(:,:,:,ismember(trainBoxLabels,targetClass)) ;
 neg = zeros(size(pos,1),size(pos,2),size(pos,3),0) ;
 
 for t=1:numHardNegativeMiningIterations
   numPos = size(pos,4) ;
   numNeg = size(neg,4) ;
-  C = 10 ;
+  C = 1 ;
   lambda = 1 / (C * (numPos + numNeg)) ;
   
   fprintf('Hard negative mining iteration %d: pos %d, neg %d\n', ...
@@ -84,10 +63,11 @@ for t=1:numHardNegativeMiningIterations
   title('SVM HOG model') ;
   
   % Evaluate on training data and mine hard negatives
-  figure(2) ;
+  figure(2) ;  
   [matches, moreNeg] = ...
     evaluateModel(...
-    trainImages, trainBoxes, trainBoxImages, ...
+    vl_colsubset(trainImages', schedule(t), 'beginning'), ...
+    trainBoxes, trainBoxImages, ...
     w, hogCellSize, scales) ;
   
   % Add negatives

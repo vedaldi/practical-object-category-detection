@@ -1,19 +1,9 @@
-
+% EXERCISE3
 setup ;
 
-load('data/signs-train.mat', ...
-  'trainImages', ...
-  'trainPatches', ...
-  'trainLabels', ...
-  'trainBoxes', ...
-  'trainPatches', ...
-  'testImages', ...
-  'testLabels', ...
-  'testBoxes', ...
-  'testPatches') ;
-
+% Feature configuration
 hogCellSize = 6 ;
-targetClass = 1 ;
+numHardNegativeMiningIterations = 3 ;
 minScale = -1 ;
 maxScale = 3 ;
 numOctaveSubdivisions = 3 ;
@@ -22,14 +12,15 @@ scales = 2.^linspace(...
   maxScale,...
   numOctaveSubdivisions*(maxScale-minScale+1)) ;
 
-load('data/signs-model-2.mat','w') ;
+% Load data
+load('data/signs-model-2.mat','w','targetClass') ;
+loadData(targetClass) ;
 
 % -------------------------------------------------------------------------
 % Step 3.1: Multiple detections
 % -------------------------------------------------------------------------
 
-targetImage = 16 ;
-im = imread(testImages{targetImage}) ;
+im = imread(testImages{1}) ;
 im = im2single(im) ;
 
 % Compute detections
@@ -58,7 +49,7 @@ title('Multiple detections') ;
 % -------------------------------------------------------------------------
 
 % Find all the objects in the target image
-s = find(strcmp(testImages{targetImage}, testImages)) ;
+s = find(strcmp(testImages{1}, testBoxImages)) ;
 gtBoxes = testBoxes(:, s) ;
 
 % No example is considered difficult
@@ -86,5 +77,6 @@ vl_pr(matches.labels, matches.scores) ;
 
 figure(3) ; clf ;
 
-matches = evaluateModel(testImages, testBoxes, w, hogCellSize, scales) ;
+matches = evaluateModel(testImages, testBoxes, testBoxImages, ...
+  w, hogCellSize, scales) ;
 

@@ -28,8 +28,8 @@ for i=1:numel(testImages)
   clf;
   subplot(1,2,1) ;
   imagesc(im) ; axis equal ; hold on ;
+  vl_plotbox(detections(:, matches(i).detBoxFlags==-1), 'r', 'linewidth', 1) ;
   vl_plotbox(detections(:, matches(i).detBoxFlags==+1), 'g', 'linewidth', 2) ;
-  vl_plotbox(detections(:, matches(i).detBoxFlags==-1), 'r', 'linewidth', 2) ;
   vl_plotbox(gtBoxes, 'b', 'linewidth', 1) ;
   axis off ;
 
