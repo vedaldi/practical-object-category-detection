@@ -1,10 +1,8 @@
+# Object category detection practical
 
-
-# Object category detection
+This is an [Oxford Visual Geometry Group](http://www.robots.ox.ac.uk/~vgg) computer vision practical, authored by [Andrea Vedaldi](http://www.robots.ox.ac.uk/~vedaldi/) and Andrew Zisserman (Release 2014a).
 
 ![cover][1]
-
-> A computer vision practical of the [Oxford Visual Geometry Group](http://www.robots.ox.ac.uk/~vgg), authored by [Andrea Vedaldi](http://www.robots.ox.ac.uk/~vedaldi).
 
 The goal of *object category detection* is to identify and localize objects of a given type in an image. Examples applications include detecting pedestrian, cars, or traffic signs in street signs, objects of interest such as tools or animals in web images, or particular features in medical image. Given a target class, such as *people*, a *detector* receives as input an image and produces as output zero, one, or more bounding boxes around each occurrence of the object class in the image. The key challenge is that the detector needs to find objects regardless of their location and scale in the image, as well as pose and other variation factors, such as clothing, illumination, occlusions, etc.
 
@@ -16,12 +14,12 @@ In more detail, the practical explores the following topics: (i) using HOG featu
 
 ## Getting started
 
-The practical can be downloaded here:
+Read and understand the [requirements and installation instructions](http://www.robots.ox.ac.uk/~vgg/practicals/instance-recognition/index.html#installation). The download links for this practical are:
 
 * Code and data: [practical-category-detection-2014a.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a.tar.gz)
 * Code only: [practical-category-detection-2014a-code-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a-code-only.tar.gz)
 * Data only: [practical-category-detection-2014a-data-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a-data-only.tar.gz)
-* [Git repository](https://github.com/vedaldi/practical-category-detection) (for lab setters and developers)
+* [Git repository](https://github.com/vedaldi/practical-object-category-detection) (for lab setters and developers)
 
 After the installation is complete, open and edit the script `exercise1.m` in the MATLAB editor. The script contains commented code and a description for all steps of this exercise, relative to [Part I](#part1) of this document. You can cut and paste this code into the MATLAB window to run it, and will need to modify it as you go through the session. Other files `exercise2.m`, `exercise3.m`, and `exercise4.m` are given for [Part II](#part2), [III](#part3), and [IV](part4).
 
@@ -406,4 +404,4 @@ evaluateModel(...
 
    [^overlap]: Measured as area of the intersection over are of the union: $|A\cap B|/|A \cup B|$.
 
-  [1]: cover.jpeg "cover.jpeg"
+  [1]: images/cover.jpeg "cover.jpeg"

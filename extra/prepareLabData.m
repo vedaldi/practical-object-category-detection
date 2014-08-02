@@ -11,6 +11,8 @@ if ~exist('vlfeat', 'dir')
   movefile('data/vlfeat-0.9.18', 'vlfeat') ;
 end
 
+setup ;
+
 % --------------------------------------------------------------------
 %                            Download and preprocess traffic sign data
 % --------------------------------------------------------------------

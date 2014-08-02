@@ -1,5 +1,6 @@
 name = practical-category-detection-2014a
 DST = vgg@login.robots.ox.ac.uk:WWW/share
+DSTDOC = vgg@login.robots.ox.ac.uk:WWW/practicals/category-detection
 
 .PHONY: prepack, pack, pack-data, pack-code, post, clean, distclean
 
@@ -22,8 +23,11 @@ loadData.m \
 setup.m \
 README.md \
 vlfeat \
-matconvnet \
-doc/instructions.pdf
+matconvnet
+
+doc=\
+doc/*.jpeg \
+doc/instructions.html
 
 data=\
 data/signs.mat \
@@ -34,22 +38,28 @@ data:=$(addprefix $(CURDIR)/,$(data))
 
 pack:
 	rm -rf data/$(name)
-	mkdir -p data/$(name)/data
+	mkdir -p data/$(name)/{doc,data}
 	ln -sf $(data) data/$(name)/data/
+	ln -sf $(doc) data/$(name)/doc/
 	ln -sf $(code) data/$(name)/
 	tar -C data -czvhf data/$(name).tar.gz $(name)/
 
 pack-data:
 	rm -rf data/$(name)
-	mkdir -p data/$(name)/data
+	mkdir -p data/$(name)/{doc,data}
 	ln -sf $(data) data/$(name)/
 	tar -C data -czvhf data/$(name)-data-only.tar.gz $(name)/
 
 pack-code:
 	rm -rf data/$(name)
-	mkdir -p data/$(name)/data
+	mkdir -p data/$(name)/{doc,data}
+	ln -sf $(doc) data/$(name)/doc/
 	ln -sf $(code) data/$(name)/
 	tar -C data -czvhf data/$(name)-code-only.tar.gz $(name)/
+
+post-doc:
+	rsync -rv doc/images $(DSTDOC)/
+	rsync -v doc/instructions.html $(DSTDOC)/index.html
 
 post: pack-all
 	rsync -v data/$(name).tar.gz $(DST)/

@@ -4,6 +4,8 @@ Object category detection practical
 > A computer vision practical by the Oxford Visual Geometry group,
 > authored by Andrea Vedaldi.
 
+Start from `doc/instructions.html`.
+
 Package contents
 ----------------
 
@@ -33,8 +35,11 @@ MATLAB functions:
 Appendix: Installing from scratch
 ---------------------------------
 
+The practical requires both VLFeat and MatConvNet. VLFeat comes with
+pre-built binaries, but MatConvNet does not.
+
 1. From Bash, run `./extras/download.sh`. This will download the
-   German Street Sign Benchmark data.
+   German Street Sign Benchmark data and VLFeat.
 2. From MATLAB, run `addpath extras ; prepareLabData.m`.
 
 Changes
