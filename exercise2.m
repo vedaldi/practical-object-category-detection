@@ -9,6 +9,7 @@ targetClass = 'mandatory' ;
 loadData(targetClass) ;
 
 % Compute HOG features of examples (see Step 1.2)
+hogCellSize = 8 ;
 trainHog = {} ;
 for i = 1:size(trainBoxPatches,4)
   trainHog{i} = vl_hog(trainBoxPatches(:,:,:,i), hogCellSize) ;
@@ -16,7 +17,7 @@ end
 trainHog = cat(4, trainHog{:}) ;
 
 % Learn a trivial HOG model (see Step 1.3)
-w = mean(trainHog(:,:,:,ismember(trainBoxLabels,targetClass)), 4) ;
+w = mean(trainHog, 4) ;
 save('data/signs-model-1.mat', 'w', 'targetClass') ;
 
 figure(2) ; clf ;
@@ -28,9 +29,6 @@ title('Trivial HOG model') ;
 % Step 2.1: Multi-scale detection
 % -------------------------------------------------------------------------
 
-im = imread(testImages{1}) ;
-im = im2single(im) ;
-
 % Scale space configuraiton
 minScale = -1 ;
 maxScale = 3 ;
@@ -39,6 +37,9 @@ scales = 2.^linspace(...
   minScale,...
   maxScale,...
   numOctaveSubdivisions*(maxScale-minScale+1)) ;
+
+im = imread(testImages{3}) ;
+im = im2single(im) ;
 
 figure(5) ; clf ;
 detection = detectAtMultipleScales(im, w, hogCellSize, scales) ;
@@ -69,7 +70,7 @@ for t=1:numel(trainImages)
   % Assume that these are negative (almost certain)
   width = size(hog,2) - modelWidth + 1 ;
   height = size(hog,1) - modelHeight + 1 ;
-  index = vl_colsubset(1:width*height, 5, 'uniform') ;
+  index = vl_colsubset(1:width*height, 10, 'uniform') ;
 
   for j=1:numel(index)
     [hy, hx] = ind2sub([height width], index(j)) ;
@@ -86,7 +87,7 @@ neg = cat(4, neg{:}) ;
 
 numPos = size(pos,4) ;
 numNeg = size(neg,4) ;
-C = 1 ;
+C = 10 ;
 lambda = 1 / (C * (numPos + numNeg)) ;
 
 % Pack the data into a matrix with one datum per column

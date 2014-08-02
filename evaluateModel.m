@@ -12,7 +12,7 @@ for i=1:numel(testImages)
   % Non-maxima suppression
   keep = boxsuppress(detections, scores, 0.5) ;
   keep = find(keep) ;
-  keep = vl_colsubset(keep, 30, 'beginning') ;
+  keep = vl_colsubset(keep, 15, 'beginning') ;
   detections = detections(:, keep) ;
   scores = scores(keep) ;
 
@@ -26,14 +26,17 @@ for i=1:numel(testImages)
   
   % Visualize progres
   clf;
-  subplot(1,2,1) ;
+  subplot(1,3,[1 2]) ;
   imagesc(im) ; axis equal ; hold on ;
-  vl_plotbox(detections(:, matches(i).detBoxFlags==-1), 'r', 'linewidth', 1) ;
-  vl_plotbox(detections(:, matches(i).detBoxFlags==+1), 'g', 'linewidth', 2) ;
+  labels = arrayfun(@(x)sprintf('%d',x),1:size(detections,2),'uniformoutput',0) ;
+  sp = fliplr(find(matches(i).detBoxFlags == -1)) ;
+  sn = fliplr(find(matches(i).detBoxFlags == +1)) ;
+  vl_plotbox(detections(:, sp), 'r', 'linewidth', 1, 'label', labels(sp)) ;
+  vl_plotbox(detections(:, sn), 'g', 'linewidth', 2, 'label', labels(sn)) ;
   vl_plotbox(gtBoxes, 'b', 'linewidth', 1) ;
   axis off ;
 
-  subplot(1,2,2) ;
+  subplot(1,3,3) ;
   vl_pr([matches.labels], [matches.scores]) ;
   
   % If required, collect top negative features
@@ -46,6 +49,7 @@ for i=1:numel(testImages)
     negs{end+1} = extract(hog, hogCellSize, scales, w, detections) ;
   end
   
+  % Break here with the debugger
   drawnow ;
 end
 

@@ -2,7 +2,7 @@
 setup ;
 
 % Feature configuration
-hogCellSize = 6 ;
+hogCellSize = 8 ;
 numHardNegativeMiningIterations = 3 ;
 minScale = -1 ;
 maxScale = 3 ;
@@ -20,7 +20,7 @@ loadData(targetClass) ;
 % Step 3.1: Multiple detections
 % -------------------------------------------------------------------------
 
-im = imread(testImages{1}) ;
+im = imread(testImages{3}) ;
 im = im2single(im) ;
 
 % Compute detections
@@ -45,11 +45,11 @@ vl_plotbox(detections, 'g', 'linewidth', 2, ...
 title('Multiple detections') ;
 
 % -------------------------------------------------------------------------
-% Step 3.2: Evaluation
+% Step 3.2: Detector evaluation
 % -------------------------------------------------------------------------
 
 % Find all the objects in the target image
-s = find(strcmp(testImages{1}, testBoxImages)) ;
+s = find(strcmp(testImages{3}, testBoxImages)) ;
 gtBoxes = testBoxes(:, s) ;
 
 % No example is considered difficult
@@ -72,7 +72,7 @@ figure(2) ; clf ;
 vl_pr(matches.labels, matches.scores) ;
 
 % -------------------------------------------------------------------------
-% Step 3.2: Evaluation on multiple images
+% Step 3.3: Evaluation on multiple images
 % -------------------------------------------------------------------------
 
 figure(3) ; clf ;

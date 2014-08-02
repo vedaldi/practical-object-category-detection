@@ -10,7 +10,7 @@ numHardNegativeMiningIterations = 7 ;
 schedule = [1 2 5 5 100 100 100] ;
 
 % Scale space configuration
-hogCellSize = 6 ;
+hogCellSize = 8 ;
 minScale = -1 ;
 maxScale = 3 ;
 numOctaveSubdivisions = 3 ;

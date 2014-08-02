@@ -1,18 +1,14 @@
 
+% -------------------------------------------------------------------------
+% Step 1.0: Load training data
+% -------------------------------------------------------------------------
+
 setup ;
 
-load('data/signs-train.mat', ...
-  'trainImages', ...
-  'trainPatches', ...
-  'trainLabels', ...
-  'trainBoxes', ...
-  'trainPatches', ...
-  'testImages', ...
-  'testLabels', ...
-  'testBoxes', ...
-  'testPatches') ;
-hogCellSize = 6 ;
-targetClass = 1 ;
+% Load the training and testing data (trainImages, trainBoxes, ...)
+% The functio takes the ID of the type of traffic sign we want to recognize
+% 1 is the 30 km/h speed limit
+loadData(1) ;
 
 % -------------------------------------------------------------------------
 % Step 1.1: Visualize the training images
@@ -21,13 +17,13 @@ targetClass = 1 ;
 figure(1) ; clf ;
 
 subplot(1,2,1) ;
-imagesc(vl_imarraysc(trainPatches(:, :, :, trainLabels == targetClass))) ;
+imagesc(vl_imarraysc(trainBoxPatches)) ;
 axis off ;
 title('Training images (positive samples)') ;
 axis equal ;
 
 subplot(1,2,2) ;
-imagesc(mean(trainPatches(:, :, :, trainLabels == targetClass),4)) ;
+imagesc(mean(trainBoxPatches,4)) ;
 box off ;
 title('Average') ;
 axis equal ;
@@ -36,9 +32,10 @@ axis equal ;
 % Step 1.2: Extract HOG features from the training images
 % -------------------------------------------------------------------------
 
+hogCellSize = 8 ;
 trainHog = {} ;
-for i = 1:size(trainPatches,4)
-  trainHog{i} = vl_hog(trainPatches(:,:,:,i), hogCellSize) ;
+for i = 1:size(trainBoxPatches,4)
+  trainHog{i} = vl_hog(trainBoxPatches(:,:,:,i), hogCellSize) ;
 end
 trainHog = cat(4, trainHog{:}) ;
 
@@ -46,7 +43,7 @@ trainHog = cat(4, trainHog{:}) ;
 % Step 1.3: Learn a simple HOG template model
 % -------------------------------------------------------------------------
 
-w = mean(trainHog(:,:,:,trainLabels == targetClass), 4) ;
+w = mean(trainHog, 4) ;
 
 save('data/signs-model-1.mat', 'w') ;
 
@@ -61,17 +58,17 @@ title('HOG model') ;
 % -------------------------------------------------------------------------
 
 im = imread('data/signs-sample-image.jpg') ;
-hog = vl_hog(im2single(im), hogCellSize) ;
+im = im2single(im) ;
+hog = vl_hog(im, hogCellSize) ;
 scores = vl_nnconv(hog, w, []) ;
 
 figure(3) ; clf ;
 imagesc(scores) ;
-colormap gray ;
 title('Detection') ;
 colorbar ;
 
 % -------------------------------------------------------------------------
-% Step 1.5: Extract top detection
+% Step 1.5: Extract the top detection
 % -------------------------------------------------------------------------
 
 [best, bestIndex] = max(scores(:)) ;
