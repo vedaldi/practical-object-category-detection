@@ -1,3 +1,20 @@
+% PREPARELABDATA
+
+% --------------------------------------------------------------------
+%                                                      Download VLFeat
+% --------------------------------------------------------------------
+
+if ~exist('vlfeat', 'dir')
+  from = 'http://www.vlfeat.org/download/vlfeat-0.9.18-bin.tar.gz' ;
+  fprintf('Downloading vlfeat from %s\n', from) ;
+  untar(from, 'data') ;
+  movefile('data/vlfeat-0.9.18', 'vlfeat') ;
+end
+
+% --------------------------------------------------------------------
+%                            Download and preprocess traffic sign data
+% --------------------------------------------------------------------
+  
 prefix = 'data/tmp/TrainIJCNN2013' ;
 [names,x1,y1,x2,y2,labels] = textread(fullfile(prefix, 'gt.txt'), ...
   '%s%d%d%d%d%d', 'headerlines', 1, 'delimiter', ';') ;
@@ -11,6 +28,8 @@ for j = 1:numel(images)
   t = imcrop(t, [x1(j) y1(j) x2(j)-x1(j)+1 y2(j)-y1(j)+1]) ;
   t = imresize(t, [64 64]) ;
   patches{j} = t ;
+  [~,base,~] = fileparts(images{j}) ;
+  images{j} = fullfile('data', 'signs', [base '.jpeg']) ;
 end
 patches = cat(4, patches{:}) ;
 
@@ -32,7 +51,7 @@ testBoxImages = images(test) ;
 testBoxLabels = labels(test) ;
 testBoxPatches = patches(:,:,:,test) ;
 
-save('data/signs-data.mat', ...
+save('data/signs.mat', ...
   'trainImages', ...
   'trainBoxes', ...
   'trainBoxImages', ...
