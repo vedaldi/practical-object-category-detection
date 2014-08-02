@@ -23,14 +23,11 @@ setup.m \
 README.md \
 vlfeat \
 matconvnet \
-doc/ \
-doc/instructions.pdf \
-doc/instructions.html
+doc/instructions.pdf
 
 data=\
-data/ \
-data/signs-data.mat \
-data/signs-images
+data/signs.mat \
+data/signs
 
 code:=$(addprefix $(CURDIR)/,$(code))
 data:=$(addprefix $(CURDIR)/,$(data))
@@ -38,20 +35,20 @@ data:=$(addprefix $(CURDIR)/,$(data))
 pack:
 	rm -rf data/$(name)
 	mkdir -p data/$(name)/data
-	ln -sft data/$(name)/data/ $(data)
-	ln -sft data/$(name)/ $(code)
+	ln -sf $(data) data/$(name)/data/
+	ln -sf $(code) data/$(name)/
 	tar -C data -czvhf data/$(name).tar.gz $(name)/
 
 pack-data:
 	rm -rf data/$(name)
 	mkdir -p data/$(name)/data
-	ln -sft data/$(name)/data/ $(data)
+	ln -sf $(data) data/$(name)/
 	tar -C data -czvhf data/$(name)-data-only.tar.gz $(name)/
 
 pack-code:
 	rm -rf data/$(name)
 	mkdir -p data/$(name)/data
-	ln -sft data/$(name)/ $(code)
+	ln -sf $(code) data/$(name)/
 	tar -C data -czvhf data/$(name)-code-only.tar.gz $(name)/
 
 post: pack-all
