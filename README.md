@@ -1,7 +1,69 @@
-# Sliding window object detection practical
+Object category detection practical
+===================================
 
-## About
+> A computer vision practical by the Oxford Visual Geometry group,
+> authored by Andrea Vedaldi.
 
-### Acknowledgments
+Package contents
+----------------
 
-- [Traffic sign dataset](http://benchmark.ini.rub.de/?section=gtsdb&subsection=dataset)
+The practical consists of four exercises, organized in the following
+files:
+
+* `exercise1.m` -- Part I:
+* `exercise2.m` -- Part II:
+* `exercise3.m` -- Part III:
+* `exercise4.m` -- Part IV:
+
+The computer vision algorithms are implemented by
+[VLFeat](http://www.vlfeat.org). This package contains the following
+MATLAB functions:
+
+* `boxinclusion.m`: compute the inclusion of bounding boxes.
+* `boxoverlap.m`: compute the overlap of bounding boxes.
+* `boxsuppress.m`: non-maxima box suppression.
+* `detect.m`: sliding window detector.
+* `detectAtMultipleScales.m`: an intermediate example detector.
+* `evalDetections.m`: evaluate detections using the PASCAL VOC criterion.
+* `evaluateModel.m`: evaluate a detector against a database of images.
+* `extract.m`: extract HOG features from bounding boxes.
+* `loadData.m`: load practical data.
+* `setup.m`: setup MATLAB environment.
+
+Appendix: Installing from scratch
+---------------------------------
+
+1. From Bash, run `./extras/download.sh`. This will download the
+   German Street Sign Benchmark data.
+2. From MATLAB, run `addpath extras ; prepareLabData.m`.
+
+Changes
+-------
+
+* *2014a* - Initial edition
+
+License
+-------
+
+    Copyright (c) 2011-13 Andrea Vedaldi
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use, copy,
+    modify, merge, publish, distribute, sublicense, and/or sell copies
+    of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+
