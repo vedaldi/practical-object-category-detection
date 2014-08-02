@@ -18,10 +18,10 @@ In more detail, the practical explores the following topics: (i) using HOG featu
 
 The practical can be downloaded here:
 
-* Code and data: [practical-detection-2014a.tar.gz]()
-* Code only: [practical-detection-2014a-code.tar.gz]()
-* Data only: [practical-detection-2014a-data.tar.gz]()
-* [Git repository](http://www.github.com/vedaldi/practical-detectiongit) (for lab setters and developers)
+* Code and data: [practical-category-detection-2014a.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a.tar.gz)
+* Code only: [practical-category-detection-2014a-code-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a-code-only.tar.gz)
+* Data only: [practical-category-detection-2014a-data-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a-data-only.tar.gz)
+* [Git repository](https://github.com/vedaldi/practical-category-detection) (for lab setters and developers)
 
 After the installation is complete, open and edit the script `exercise1.m` in the MATLAB editor. The script contains commented code and a description for all steps of this exercise, relative to [Part I](#part1) of this document. You can cut and paste this code into the MATLAB window to run it, and will need to modify it as you go through the session. Other files `exercise2.m`, `exercise3.m`, and `exercise4.m` are given for [Part II](#part2), [III](#part3), and [IV](part4).
 
