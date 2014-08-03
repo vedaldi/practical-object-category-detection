@@ -27,7 +27,7 @@ vlfeat \
 matconvnet
 
 doc=\
-doc/images/ \
+doc/images \
 doc/instructions.html
 
 data=\
