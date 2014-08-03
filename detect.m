@@ -11,6 +11,9 @@ for s = scales
   % scale image
   t = imresize(im, 1/s) ;
   
+  % skip if too small
+  if min([size(t,1), size(t,2)]) < 128, break ; end
+
   % extract HOG features
   hog{end+1} = vl_hog(t, hogCellSize) ;
   

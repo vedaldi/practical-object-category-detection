@@ -46,7 +46,7 @@ detection = detectAtMultipleScales(im, w, hogCellSize, scales) ;
 
 figure(6) ; clf ;
 imagesc(im) ; axis equal off ; hold on ;
-vl_plotbox(detection, 'g', 'linewidth', 5) ;
+vl_plotbox(detection, 'g', 'linewidth', 2) ;
 title('Trivial detector output') ;
 
 % -------------------------------------------------------------------------
@@ -121,7 +121,7 @@ detection = detectAtMultipleScales(im, w, hogCellSize, scales) ;
 % Plot top detection
 figure(9) ; clf ;
 imagesc(im) ; axis equal off ; hold on ;
-vl_plotbox(detection, 'g', 'linewidth', 5) ;
+vl_plotbox(detection, 'g', 'linewidth', 2) ;
 title('SVM detector output') ;
 
 

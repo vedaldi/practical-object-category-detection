@@ -1,13 +1,10 @@
-% EXERCISE4
+% EXERCISE5
 setup ;
 
 % Training cofiguration
-%targetClass = 1 ;
-%targetClass = 'prohibitory' ;
-targetClass = 'mandatory' ;
-%targetClass = 'danger' ;
-numHardNegativeMiningIterations = 7 ;
-schedule = [1 2 5 5 100 100 100] ;
+targetClass = 1 ;
+numHardNegativeMiningIterations = 5 ;
+schedule = [1 2 5 5 5] ;
 
 % Scale space configuration
 hogCellSize = 8 ;
@@ -19,8 +16,33 @@ scales = 2.^linspace(...
   maxScale,...
   numOctaveSubdivisions*(maxScale-minScale+1)) ;
 
-% Load data
-loadData(targetClass) ;
+% -------------------------------------------------------------------------
+% Step 5.1: Construct custom training data
+% -------------------------------------------------------------------------
+
+% Load object examples
+trainImages = {} ;
+trainBoxes = [] ;
+trainBoxPatches = {} ;
+trainBoxImages = {} ;
+trainBoxLabels = [] ;
+
+% Construct negative data
+names = dir('data/myNegatives/*.jpeg') ;
+trainImages = fullfile('data', 'myNegatives', {names.name}) ;
+
+% Construct positive data
+names = dir('data/myPositives/*.jpeg') ;
+names = fullfile('data', 'myPositives', {names.name}) ;
+for i=1:numel(names)
+  im = imread(names{i}) ;
+  im = imresize(im, [64 64]) ;
+  trainBoxes(:,i) = [0.5 ; 0.5 ; 64.5 ; 64.5] ;
+  trainBoxPatches{i} = im2single(im) ;
+  trainBoxImages{i} = names{i} ;
+  trainBoxLabels(i) = 1 ;
+end
+trainBoxPatches = cat(4, trainBoxPatches{:}) ;
 
 % Compute HOG features of examples (see Step 1.2)
 trainBoxHog = {} ;
@@ -32,7 +54,25 @@ modelWidth = size(trainBoxHog,2) ;
 modelHeight = size(trainBoxHog,1) ;
 
 % -------------------------------------------------------------------------
-% Step 4.1: Train with hard negative mining
+% Step 5.2: Visualize the training images
+% -------------------------------------------------------------------------
+
+figure(1) ; clf ;
+
+subplot(1,2,1) ;
+imagesc(vl_imarraysc(trainBoxPatches)) ;
+axis off ;
+title('Training images (positive samples)') ;
+axis equal ;
+
+subplot(1,2,2) ;
+imagesc(mean(trainBoxPatches,4)) ;
+box off ;
+title('Average') ;
+axis equal ;
+
+% -------------------------------------------------------------------------
+% Step 5.3: Train with hard negative mining
 % -------------------------------------------------------------------------
 
 % Initial positive and negative data
@@ -56,14 +96,14 @@ for t=1:numHardNegativeMiningIterations
   w = single(reshape(w, modelHeight, modelWidth, [])) ;
 
   % Plot model
-  figure(1) ; clf ;
+  figure(2) ; clf ;
   imagesc(vl_hog('render', w)) ;
   colormap gray ;
   axis equal ;
   title('SVM HOG model') ;
   
   % Evaluate on training data and mine hard negatives
-  figure(2) ;  
+  figure(3) ;  
   [matches, moreNeg] = ...
     evaluateModel(...
     vl_colsubset(trainImages', schedule(t), 'beginning'), ...
@@ -79,11 +119,24 @@ for t=1:numHardNegativeMiningIterations
   neg = neg(:,:,:,keep) ;  
 end
 
+
 % -------------------------------------------------------------------------
-% Step 4.2: Evaluate the model on the test data
+% Step 5.3: Evaluate the model on the test data
 % -------------------------------------------------------------------------
 
+im = imread('data/myTestImage.jpeg') ;
+im = im2single(im) ;
+
+% Compute detections
+[detections, scores] = detect(im, w, hogCellSize, scales) ;
+keep = boxsuppress(detections, scores, 0.25) ;
+detections = detections(:, keep(1:10)) ;
+scores = scores(keep(1:10)) ;
+
+% Plot top detection
 figure(3) ; clf ;
-evaluateModel(...
-    testImages, testBoxes, testBoxImages, ...
-    w, hogCellSize, scales) ;
+imagesc(im) ; axis equal ;
+hold on ;
+vl_plotbox(detections, 'g', 'linewidth', 2, ...
+  'label', arrayfun(@(x)sprintf('%.2f',x),scores,'uniformoutput',0)) ;
+title('Multiple detections') ;
