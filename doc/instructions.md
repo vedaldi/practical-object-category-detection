@@ -167,7 +167,7 @@ loadData(targetClass) ;
 
 The `mandatory` target class is simply the union of all mandatory traffic signs.
 
-### Step 2.1: Multi-scale detection
+### Step 2.1: Multi-scale detection {#step2.1}
 
 Objects exist in images at sizes different from the one of the learned template. In order to find objects of all sizes, we scale the image up and down and search the object over and over again.
 
@@ -358,7 +358,7 @@ This part explores more advanced learning methods. So far, the SVM has been lear
 
 *Hard negative mining* is a simple technique that allows finding a small set of key negative examples. The idea is simple: we start by training a model without any negative at all, and then we alternate between evaluating the model on the training data to find erroneous responses and adding the corresponding examples to the training set.
 
-### Step 4.1: Train with hard negative mining
+### Step 4.1: Train with hard negative mining {#stage4.1}
 
 Use the supplied code in `example4.m` to run hard negative mining. The code repeats SVM training, as seen above, a number of times, progressively increasing the size of the `neg` array containing the negative samples. This is updated using the output of:
 
@@ -399,6 +399,35 @@ evaluateModel(...
     w, hogCellSize, scales) ;
 ```
 
+## Part 5: Train your own object detector
+
+**Skip on fast track**
+
+In this last part, you will learn your own object detector. To this end, open and look at `exercise5.m`. You will need to prepare the following data:
+
+### Step 5.1: Preparing the training data
+
+* A folder `data/myPositives` containing files `image1.jpeg`, `image2.jpeg`, ..., each containing a single cropped occurence of the target object. These crops can be of any size, but should be roughly square.
+* A folder `data/myNegatives` containing images `image1.jpeg`, `image2.jpeg`, ..., that *do not* contain the target object at all.
+* A test image `data/myTestImage.jpeg` containing the target object. This should not be one of the training images.
+
+Run the code in `example5.m` to check that your training data looks right.
+
+> **Task:** Understand the limitations of this simple detector and choose a target object that has a good chance of being learnable. 
+
+**Hint:** Note in particular that object instances must be similar and roughly aligned
+
+### Step 5.2: Learn the model
+
+Use the supplied code to learn an SVM model for your object using hard negative mining as in [Stage 4.1](#stage4.1).
+
+### Step 5.3: Test the model
+
+Use the supplied code to evaluate the SVM model on a test image and visualize the result as in [Stage 2.1](#stage2.1).
+
+> **Task:** Make sure you get sensible results. Go back to step 5.1 if needed and ajdust your data.
+
+**Hint:** For debugging purposes, try using one of your training images as test. Does it work at least in this case?
 
    [^nn]: This is part of the MatConvNet toolbox for convolutional neural networks. Nevertheless, there is no neural network discussed here.
 
