@@ -18,6 +18,7 @@ exercise1.m \
 exercise2.m \
 exercise3.m \
 exercise4.m \
+exercise5.m \
 extract.m \
 loadData.m \
 setup.m \
@@ -31,7 +32,9 @@ doc/instructions.html
 
 data=\
 data/signs.mat \
+data/signs-sample-image.jpg \
 data/signs
+
 
 code:=$(addprefix $(CURDIR)/,$(code))
 data:=$(addprefix $(CURDIR)/,$(data))

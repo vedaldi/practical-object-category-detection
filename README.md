@@ -12,10 +12,11 @@ Package contents
 The practical consists of four exercises, organized in the following
 files:
 
-* `exercise1.m` -- Part I:
-* `exercise2.m` -- Part II:
-* `exercise3.m` -- Part III:
-* `exercise4.m` -- Part IV:
+* `exercise1.m` -- Part I: Detection fundamentals
+* `exercise2.m` -- Part II: Multiple scales and learning with an SVM
+* `exercise3.m` -- Part III: Multiple objects and evaluation
+* `exercise4.m` -- Part IV: Hard negative mining
+* `exercise4.m` -- Part V: Train your own object detector
 
 The computer vision algorithms are implemented by
 [VLFeat](http://www.vlfeat.org). This package contains the following

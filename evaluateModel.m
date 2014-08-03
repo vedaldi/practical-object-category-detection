@@ -23,7 +23,7 @@ for i=1:numel(testImages)
   matches(i) = evalDetections(...
     gtBoxes, gtDifficult, ...
     detections, scores) ;
-  
+
   % Visualize progres
   clf;
   subplot(1,3,[1 2]) ;
@@ -34,11 +34,12 @@ for i=1:numel(testImages)
   vl_plotbox(detections(:, sp), 'r', 'linewidth', 1, 'label', labels(sp)) ;
   vl_plotbox(detections(:, sn), 'g', 'linewidth', 2, 'label', labels(sn)) ;
   vl_plotbox(gtBoxes, 'b', 'linewidth', 1) ;
+  title(sprintf('Image %d of %d', i, numel(testImages))) ;
   axis off ;
 
   subplot(1,3,3) ;
   vl_pr([matches.labels], [matches.scores]) ;
-  
+
   % If required, collect top negative features
   if nargout > 1
     overlaps = boxoverlap(gtBoxes, detections) ;
@@ -48,7 +49,7 @@ for i=1:numel(testImages)
     detections = vl_colsubset(detections, 10, 'beginning') ;
     negs{end+1} = extract(hog, hogCellSize, scales, w, detections) ;
   end
-  
+
   % Break here with the debugger
   drawnow ;
 end

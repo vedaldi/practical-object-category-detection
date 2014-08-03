@@ -155,7 +155,7 @@ detection = [
 
 > **Question:** Use the example code to plot the image and overlay the bounding box of the detected object. Did it work as expected?
 
-## Part 2: Multiple scale and learning with an SVM {#part2}
+## Part 2: Multiple scales and learning with an SVM {#part2}
 
 In this second part, we will: (i) extend the detector to search objects at multiple scales and (ii) learn a better model using a support vector machine. Let's start by loading the data as needed:
 
