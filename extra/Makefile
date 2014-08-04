@@ -37,8 +37,13 @@ data/signs
 
 code:=$(addprefix $(CURDIR)/,$(code))
 data:=$(addprefix $(CURDIR)/,$(data))
+deps:=$(shell find $(code) $(doc) $(data) -type f | sed "s/ /\\\\ /g")
 
-pack:
+pack: data/$(name).tar.gz
+pack-data: data/$(name)-data-only.tar.gz
+pack-code: data/$(name)-code-only.tar.gz
+
+data/$(name).tar.gz: $(deps)
 	rm -rf data/$(name)
 	mkdir -p data/$(name)/{doc,data}
 	ln -sf $(data) data/$(name)/data/
@@ -46,13 +51,13 @@ pack:
 	ln -sf $(code) data/$(name)/
 	tar -C data -czvhf data/$(name).tar.gz $(name)/
 
-pack-data:
+data/$(name)-data-only.tar.gz: $(deps)
 	rm -rf data/$(name)
 	mkdir -p data/$(name)/{doc,data}
 	ln -sf $(data) data/$(name)/
 	tar -C data -czvhf data/$(name)-data-only.tar.gz $(name)/
 
-pack-code:
+data/$(name)-code-only.tar.gz: $(deps)
 	rm -rf data/$(name)
 	mkdir -p data/$(name)/{doc,data}
 	ln -sf $(doc) data/$(name)/doc/
@@ -69,7 +74,7 @@ post: pack-all
 	rsync -v data/$(name)-code-only.tar.gz $(DST)/
 
 clean:
-	find -name '*~' -delete
+	find . -name '*~' -delete
 
 distclean: clean
 	rm -f data/$(name)*.tar.gz
