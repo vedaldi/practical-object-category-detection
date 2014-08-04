@@ -35,7 +35,6 @@ data/signs.mat \
 data/signs-sample-image.jpg \
 data/signs
 
-
 code:=$(addprefix $(CURDIR)/,$(code))
 data:=$(addprefix $(CURDIR)/,$(data))
 
