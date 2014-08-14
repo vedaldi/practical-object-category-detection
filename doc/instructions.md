@@ -77,7 +77,7 @@ trainHog = cat(4, trainHog{:}) ;
 
 HOG is computed by the [VLFeat](http::www.vlfeat.org) function `vl_hog` ([doc](http://www.vlfeat.org/matlab/vl_hog.html)). This function takes as parameter the size in pixels of each HOG cell `hogCellSize`. It also takes a RGB image, represented in MATLAB as a $w \times h \times 3$ array (extracted as a slice of `trainBoxPatches`). The output is a $w/\mathtt{hogCellSize} \times h/\mathtt{hogCellSize} \times 31$ dimensional array. One such array is extracted for each example image end eventually these are concatenated in a 4D array along the fourth dimension.
 
-### Step 1.3: Learn a simple HOG template model
+### Step 1.3: Learn a simple HOG template model {#sect13}
 
 A very basic object model can be obtained by averaging the features of the example objects. This is done by:
 
@@ -288,14 +288,19 @@ scores = scores(1:10) ;
 
 ### Step 3.2: Detector evaluation
 
-We are now going to look at properly evaluating our detector. We use the [PASCAL VOC criterion](http://pascallin.ecs.soton.ac.uk/challenges/VOC/voc2012/devkit_doc.pdf), computing *Average Precision (AP)*. Consider a test image containing a number of ground truth object occurrences $(g_1,\dots,g_m)$ and a list $(b_1,s_1),\dots,(b_n,s_n)$ of candidate detections $b_i$ with score $s_i$. The following algorithm converts this data into a list of labels and scores $(s_i,y_i)$ that can be used to compute a precision-recall curve, for example using VLFeat *vl_pr* function. The algorithm, implemented by `evalDetections.m`, is as follows:
+We are now going to look at properly evaluating our detector. We use the [PASCAL VOC criterion](http://pascallin.ecs.soton.ac.uk/challenges/VOC/voc2012/devkit_doc.pdf), computing *Average Precision (AP)*. Consider a test image containing a number of ground truth object occurrences $(g_1,\dots,g_m)$ and a list $(b_1,s_1),\dots,(b_n,s_n)$ of candidate detections $b_i$ with score $s_i$. The following algorithm converts this data into a list of labels and scores $(s_i,y_i)$ that can be used to compute a precision-recall curve, for example using VLFeat `vl_pr` function. The algorithm, implemented by `evalDetections.m`, is as follows:
 
 1. Assign each candidate detection $(b_i,s_i)$ a true or false label $y_i \in \{+1,-1\}$. To do so:
     1. The candidate detections $(b_i,s_i)$ are sorted by decreasing score $s_i$.
     2. For each candidate detection in order:
-        a. If there is a matching ground truth detection $g_j$ ($\operatorname{overlap}(b_i,g_j)$[^overlap] larger than 50%), the candidate detection is considered positive ($y_i=+1$). Furthermore, the ground truth detection is *removed from the list* and not considered further.
+        a. If there is a matching ground truth detection $g_j$ ($\operatorname{overlap}(b_i,g_j)$ larger than 50%), the candidate detection is considered positive ($y_i=+1$). Furthermore, the ground truth detection is *removed from the list* and not considered further.
         b. Otherwise ,the candidate detection is negative ($y_i=-1$).
 2. Add each ground truth object $g_i$ that is still unassigned to the list of candidates as pair $(g_j, -\infty)$ with label $y_j=+1$.
+
+The overlap metric used to compare a candidate detection to a ground truth bounding box is defined as the *ratio of the area of the intersection over the area of the union* of the two bounding boxes:
+$$
+\operatorname{overlap}(A,B) = \frac{|A\cap B|}{|A \cup B|}.
+$$
 
 > **Questions:**
 
@@ -422,22 +427,53 @@ Run the code in `example5.m` to check that your training data looks right.
 
 > **Task:** Understand the limitations of this simple detector and choose a target object that has a good chance of being learnable. 
 
-**Hint:** Note in particular that object instances must be similar and roughly aligned
+**Hint:** Note in particular that object instances must be similar and roughly aligned. If your object is not symmetric, consider choosing instances that face a particular direction (e.g. left-facing horse head).
 
 ### Step 5.2: Learn the model
 
-Use the supplied code to learn an SVM model for your object using hard negative mining as in [Stage 4.1](#stage4.1).
+Use the code supplied in `example5.m` to learn an SVM model for your object using hard negative mining as in [Stage 4.1](#stage4.1).
 
 ### Step 5.3: Test the model
 
-Use the supplied code to evaluate the SVM model on a test image and visualize the result as in [Stage 2.1](#stage2.1).
+Use the code supplied in `example5.m` to evaluate the SVM model on a test image and visualize the result as in [Stage 2.1](#stage2.1).
 
-> **Task:** Make sure you get sensible results. Go back to step 5.1 if needed and ajdust your data.
+> **Task:** Make sure you get sensible results. Go back to step 5.1 if needed and adjust your data.
 
 **Hint:** For debugging purposes, try using one of your training images as test. Does it work at least in this case?
 
-   [^nn]: This is part of the MatConvNet toolbox for convolutional neural networks. Nevertheless, there is no neural network discussed here.
+### Step 5.4: Detecting symmetric objects with multiple aspects
 
-   [^overlap]: Measured as area of the intersection over are of the union: $|A\cap B|/|A \cup B|$.
+The basic detectors you have learned so far are *not* invariant to effects such as object deformations, out-of-plane rotations, and partial occlusions that affect most natural objects. Handling these effects requires additional sophistications, including using deformable templates, and mixture of multiple templates.
+
+In particular, many objects in nature are symmetric and, as such, their images appear flipped when the objects are seen from the left or the right direction (consider for example a face). This can be handled by a pair of symmetric HOG templates. In this part we will explore this option.
+
+> **Task:** Using the procedure above, train a HOG template `w` for a symmetric object facing in one specific direction. For example, train a left-facing horse head detector.
+
+> **Task:** Collect test images containing the object facing in both directions. Run your detector and convince yourself that it works well only for the direction it was trained for.
+
+HOG features have a well defined structure that makes it possible to predict how the features transform when the underlying image is flipped. The transformation is in fact a simple *permutation* of the HOG elements. For a given spatial cell, HOG has 31 dimensions. The following code permutes the dimension to flip the cell around the vertical axis:
+
+    perm = vl_hog('permutation') ;
+    hog_flipped = hog(perm) ;
+
+Note that this permutation applies to a *single* HOG cell. However, the template is a $H \times W \times 31$ dimensional array of HOG cells.
+
+> **Task:** Given a `hog` array of dimension $H \times W \times 31$, write MATLAB code to obtain the flipped feature array `hog_flipped`.
+
+**Hint:** Recall that the first dimension spans the vertical axis, the second dimension the horizontal axis, and the third dimension feature channels. `perm` should be applied to the last dimension. Do you need to permute anything else?
+
+Now let us apply flipping to the model trained earlier:
+
+> **Task:** Let `w` be the model you trained before. Use the procedure to flip HOG to generate `w_flipped`. Then visualize both `w` and `w_flipped` as done in [Sect. 1.3](#sect13). Convince yourself that flipping was successful.
+
+We have now two models, `w` and `w_flipped`, one for each view of the object.
+
+> **Task:** Run both models in turn on the same image, obtaining two list of bounding boxes. Find a way to merge the two lists and visualise the top detections. Convince yourself that you can now detect objects facing either way.
+
+**Hint:** Recall how redundant detections can be removed using non-maxima suppression.
+
+**Congratulations: This concludes the practical!**
+
+   [^nn]: This is part of the MatConvNet toolbox for convolutional neural networks. Nevertheless, there is no neural network discussed here.
 
   [1]: images/cover.jpeg "cover.jpeg"
