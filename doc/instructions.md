@@ -60,6 +60,8 @@ Select now the part of the code relative to section 1.1 and execute it. This wil
 
 > **Question:** what can you deduce about the object variability from the average image?
 
+> **Question:** most boxes extend slightly around the object extent. Why do you think this may be valuable in learning a detector?
+
 ### Step 1.2: Extract HOG features from the training images
 
 Object detectors usually work on top of a layer of low-level features. In this case, we use HOG (*histogram of oriented gradients*) features. In order to learn a model of the object, we start by extracting features from the image patches corresponding to the available training examples. This is done by the following `for` loop:
@@ -286,15 +288,20 @@ scores = scores(1:10) ;
 
 ### Step 3.2: Detector evaluation
 
-We are now going to look at properly evaluating our detector. We use the [PASCAL VOC criterion](http://pascallin.ecs.soton.ac.uk/challenges/VOC/voc2012/devkit_doc.pdf), computing *Average Precision (AP)*. Consider a test image containing a number of ground truth object occurrences $(g_1,\dots,g_m)$ and a list $(b_i,s_i)$ of candidate detections $b_i$ with score $s_i$. The following algorithm converts this data into a list of labels and scores $(s_i,y_i)$ that can be used to compute a precision-recall curve, for example using VLFeat *vl_pr* function. The algorithm, implemented by `evalDetections.m`, is as follows:
+We are now going to look at properly evaluating our detector. We use the [PASCAL VOC criterion](http://pascallin.ecs.soton.ac.uk/challenges/VOC/voc2012/devkit_doc.pdf), computing *Average Precision (AP)*. Consider a test image containing a number of ground truth object occurrences $(g_1,\dots,g_m)$ and a list $(b_1,s_1),\dots,(b_n,s_n)$ of candidate detections $b_i$ with score $s_i$. The following algorithm converts this data into a list of labels and scores $(s_i,y_i)$ that can be used to compute a precision-recall curve, for example using VLFeat *vl_pr* function. The algorithm, implemented by `evalDetections.m`, is as follows:
 
-1. The candidate detections $(b_i,s_i)$ are sorted by decreasing score $s_i$.
-2. For each candidate detection in order:
-    a. If there is a matching ground truth detection $g_j$ ($\operatorname{overlap}(b_i,g_j)$[^overlap] larger than 50%), the candidate detection is considered positive ($y_i=+1$). Furthermore, the ground truth detection is *removed from the list* and not considered further.
-    b. Otherwise ,the candidate detection is negative ($y_i=-1$).
-3. Any ground truth detection that remains unassigned is considered a positive object $y_i=+1$ recalled with a score equal to $s_i=-\infty$.
+1. Assign each candidate detection $(b_i,s_i)$ a true or false label $y_i \in \{+1,-1\}$. To do so:
+    1. The candidate detections $(b_i,s_i)$ are sorted by decreasing score $s_i$.
+    2. For each candidate detection in order:
+        a. If there is a matching ground truth detection $g_j$ ($\operatorname{overlap}(b_i,g_j)$[^overlap] larger than 50%), the candidate detection is considered positive ($y_i=+1$). Furthermore, the ground truth detection is *removed from the list* and not considered further.
+        b. Otherwise ,the candidate detection is negative ($y_i=-1$).
+2. Add each ground truth object $g_i$ that is still unassigned to the list of candidates as pair $(g_j, -\infty)$ with label $y_j=+1$.
 
-> **Question:** Answer the following: (i) Why are ground truth detections considred only once? (ii) What happens if an object is detected twice?
+> **Questions:**
+
+> * Why are ground truth detections removed after being matched?
+> * What happens if an object is detected twice?
+> * Can you explain why unassigned ground-truth objects are added to the list of candidates with $-\infty$ score?
 
 In order to apply this algorithm, we first need to find the ground truth bounding boxes in the test image:
 ```matlab
