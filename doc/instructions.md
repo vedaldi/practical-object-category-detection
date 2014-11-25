@@ -33,7 +33,7 @@ In this part we will build a basic sliding-window object detector based on HOG f
 
 ### Step 1.0: Loading the training data
 
-The MATLAB m-file `loadData.m` loads the data relative to the practical into memory. The function `loadData(targetClass)` takes a `targetClass` argument specifying the object class of interest. Open the `example1.m` file, select the following part of the code, and execute it in MATLAB (right button > *Evaluate selection* or Shift+F7).
+The MATLAB m-file `loadData.m` loads the data relative to the practical into memory. The function `loadData(targetClass)` takes a `targetClass` argument specifying the object class of interest. Open the `example1.m` file, select the following part of the code, and execute it in MATLAB (right button > `Evaluate selection` or `Shift+F7`).
 
 ```matlab
 % Load the training and testing data (trainImages, trainBoxes, ...)
