@@ -14,7 +14,7 @@ In more detail, the practical explores the following topics: (i) using HOG featu
 
 ## Getting started
 
-Read and understand the [requirements and installation instructions](http://www.robots.ox.ac.uk/~vgg/practicals/instance-recognition/index.html#installation). The download links for this practical are:
+Read and understand the [requirements and installation instructions](../overview/index.html#installation). The download links for this practical are:
 
 * Code and data: [practical-category-detection-2014a.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a.tar.gz)
 * Code only: [practical-category-detection-2014a-code-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a-code-only.tar.gz)
