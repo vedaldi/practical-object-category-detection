@@ -368,7 +368,7 @@ matches = evaluateModel(testImages, testBoxes, testBoxImages, ...
 
 This part explores more advanced learning methods. So far, the SVM has been learned using a small and randomly sampled number of negative examples. However, in principle, every single patch that does not contain the object can be considered as a negative sample. These are of course too many to be used in practice; unfortunately, random sampling is ineffective as the most interesting (confusing) negative samples are a very small and special subset of all the possible ones.
 
-*Hard negative mining* is a simple technique that allows finding a small set of key negative examples. The idea is simple: we start by training a model without any hard negatives at all, and then we alternate between evaluating the model on the training data to find erroneous responses and adding the corresponding examples to the training set.
+*Hard negative mining* is a simple technique that allows finding a small set of key negative examples. The idea is simple: we start by training a model without any negatives at all (in this case the solver learns a 1-class SVM), and then we alternate between evaluating the model on the training data to find erroneous responses and adding the corresponding examples to the training set.
 
 ### Step 4.1: Train with hard negative mining {#stage4.1}
 
