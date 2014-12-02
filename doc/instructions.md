@@ -4,7 +4,7 @@ This is an [Oxford Visual Geometry Group](http://www.robots.ox.ac.uk/~vgg) compu
 
 ![cover][1]
 
-The goal of *object category detection* is to identify and localize objects of a given type in an image. Examples applications include detecting pedestrian, cars, or traffic signs in street signs, objects of interest such as tools or animals in web images, or particular features in medical image. Given a target class, such as *people*, a *detector* receives as input an image and produces as output zero, one, or more bounding boxes around each occurrence of the object class in the image. The key challenge is that the detector needs to find objects regardless of their location and scale in the image, as well as pose and other variation factors, such as clothing, illumination, occlusions, etc.
+The goal of *object category detection* is to identify and localize objects of a given type in an image. Examples applications include detecting pedestrian, cars, or traffic signs in street scenes, objects of interest such as tools or animals in web images, or particular features in medical image. Given a target class, such as *people*, a *detector* receives as input an image and produces as output zero, one, or more bounding boxes around each occurrence of the object class in the image. The key challenge is that the detector needs to find objects regardless of their location and scale in the image, as well as pose and other variation factors, such as clothing, illumination, occlusions, etc.
 
 This practical explores basic techniques in visual object detection, focusing on  *image based models*. The appearance of image patches containing objects is learned using statistical analysis. Then, in order to detect objects in an image, the statistical model is applied to image windows extracted at all possible scales and locations, in order to identify which ones, if any, contain the object.
 
@@ -27,13 +27,13 @@ Each part contains several **Questions** and **Tasks** to be answered/completed 
 
 ## Part 1: Detection fundamentals {#part1}
 
-In Part I--IV use as running example the problem of street sign detection, using the data from the [German Traffic Sign Detection Benchmark](http://benchmark.ini.rub.de/?section=gtsdb&subsection=news). This data consists of a number of example traffic images, as well as a number of larger test images containing one or more traffic signs at different sizes and locations. It also comes with *ground truth* annotation, i.e. with specified bounding boxes and sign labels for each sign occurrence, which is required to evaluate the quality of the detector.
+Part I--IV use as running example the problem of street sign detection, using the data from the [German Traffic Sign Detection Benchmark](http://benchmark.ini.rub.de/?section=gtsdb&subsection=news). This data consists of a number of example traffic images, as well as a number of larger test images containing one or more traffic signs at different sizes and locations. It also comes with *ground truth* annotation, i.e. with specified bounding boxes and sign labels for each sign occurrence, which is required to evaluate the quality of the detector.
 
 In this part we will build a basic sliding-window object detector based on HOG features. Follow the steps below:
 
 ### Step 1.0: Loading the training data
 
-The MATLAB m-file `loadData.m` loads the data relative to the practical into memory. The function `loadData(targetClass)` takes a `targetClass` argument specifying the object class of interest. Open the `example1.m` file, select the following part of the code, and execute it in MATLAB (right button > `Evaluate selection` or `Shift+F7`).
+The MATLAB m-file `loadData.m` loads the data for the practical into memory. The function `loadData(targetClass)` takes a `targetClass` argument specifying the object class of interest. Open the `example1.m` file, select the following part of the code, and execute it in MATLAB (right button > `Evaluate selection` or `Shift+F7`).
 
 ```matlab
 % Load the training and testing data (trainImages, trainBoxes, ...)
@@ -50,13 +50,13 @@ This loads into the current workspace the following variables:
 * `trainBoxLabels`: for each bounding box, the object label. It is one of the index in `targetClass`.
 * `trainBoxPatches`: a $64 \times 64 \times 3 \times N$ array of image patches, one for each training object. Patches are in RGB format.
 
-An analogous set of variables `testImages`, `testBoxes`, and so on are provided for the test data. Familiraise yourself with the contents of these variables.
+An analogous set of variables `testImages`, `testBoxes`, and so on are provided for the test data. Familiarise yourself with the contents of these variables.
 
 > **Question:** why is there a `trainImages` and a `trainBoxImages` variables?
 
 ### Step 1.1: Visualize the training images
 
-Select now the part of the code relative to section 1.1 and execute it. This will create an image visualizing both the complete list of object training examples and their average.
+Select now the part of the code related to section 1.1 and execute it. This will create an image visualizing both the complete list of object training examples and their average.
 
 > **Question:** what can you deduce about the object variability from the average image?
 
@@ -64,7 +64,7 @@ Select now the part of the code relative to section 1.1 and execute it. This wil
 
 ### Step 1.2: Extract HOG features from the training images
 
-Object detectors usually work on top of a layer of low-level features. In this case, we use HOG (*histogram of oriented gradients*) features. In order to learn a model of the object, we start by extracting features from the image patches corresponding to the available training examples. This is done by the following `for` loop:
+Object detectors usually work on top of a layer of low-level features. In this case, we use HOG (*Histogram of Oriented Gradients*) features. In order to learn a model of the object, we start by extracting features from the image patches corresponding to the available training examples. This is done by the following `for` loop:
 
 ```matlab
 hogCellSize = 8 ;
@@ -98,7 +98,7 @@ Spend some time to study this plot and make sure you understand what is visualiz
 
 ### Step 1.4: Apply the model to a test image
 
-The model is matched to a test image by: (i) extracting the HOG features of the image and (ii) convolving the model to the resulting feature map:
+The model is matched to a test image by: (i) extracting the HOG features of the image and (ii) convolving the model over the resulting feature map:
 
 ```matlab
 im = imread('data/signs-sample-image.jpg') ;
@@ -171,9 +171,9 @@ The `mandatory` target class is simply the union of all mandatory traffic signs.
 
 ### Step 2.1: Multi-scale detection {#step2.1}
 
-Objects exist in images at sizes different from the one of the learned template. In order to find objects of all sizes, we scale the image up and down and search the object over and over again.
+Objects exist in images at sizes different from one of the learned template. In order to find objects of all sizes, we scale the image up and down and search for the object over and over again.
 
-The set of searched scale is defined as follows:
+The set of searched scales is defined as follows:
 
 ```matlab
 % Scale space configuraiton
@@ -186,7 +186,7 @@ scales = 2.^linspace(...
   numOctaveSubdivisions*(maxScale-minScale+1)) ;
 ```
 
-Given the model `w`, as determined in Part I, we use the function `detectAtMultipleScales` in order to search the object at multiple scales:
+Given the model `w`, as determined in Part I, we use the function `detectAtMultipleScales` in order to search for the object at multiple scales:
 
 ```matlab
 detection = detectAtMultipleScales(im, w, hogCellSize, scales) ;
@@ -196,7 +196,7 @@ Note that the function generates a figure as it runs, so prepare a new figure be
 
 > **Question:** Open and study the `detectAtMultipleScales` function. Convince yourself that it is the same code as before, but operated after rescaling the image a number of times. 
 
-> **Question:** Visualized the resulting detection using the supplied example code. Did it work? If not, can you make sense of the errors?
+> **Question:** Visualize the resulting detection using the supplied example code. Did it work? If not, can you make sense of the errors?
 
 > **Question:** Look at the array of `scores` maps generated by `detectAtMultipleScales` using the example code. Do they make sense? Is there anything wrong?
 
@@ -217,7 +217,7 @@ Ino order to collect negative examples (features extracted from non-object patch
 
 ### Step 2.3: Learn a model with an SVM
 
-Now thaw we have the data, we can learn an SVM model. To this end we will use the `vl_svmtrain` function. This function requires the data to be in a $D \times N$ matrix, where $D$ are the feature dimensions and $N$ the number of training points. This is done by:
+Now that we have the data, we can learn an SVM model. To this end we will use the `vl_svmtrain` function. This function requires the data to be in a $D \times N$ matrix, where $D$ are the feature dimensions and $N$ the number of training points. This is done by:
 
 ```matlab
 % Pack the data into a matrix with one datum per column
@@ -231,7 +231,7 @@ We also need a vector of binary labels, +1 for positive points and -1 for negati
 y = [ones(1, size(pos,4)) -ones(1, size(neg,4))] ;
 ```
 
-Finally, we need to set the parameter $\lambda$ of the SVM solver. For reason that will become clearer later, we use instead the equivalent $C$ parameter:
+Finally, we need to set the parameter $\lambda$ of the SVM solver. For reasons that will become clearer later, we use instead the equivalent $C$ parameter:
 ```matlab
 numPos = size(pos,4) ;
 numNeg = size(neg,4) ;
@@ -259,7 +259,7 @@ Use the `detectAtMultipleScales` seen above to evaluate the new SVM-based model.
 
 ### Step 3.1: Multiple detections
 
-Detecting at multiple scales is insufficient: we must also allow for more than one object occurrence in the image. In order to to so, the package include a suitalbe `detect` functin. This function is similar to `detectAtMultipleScales`, but it returns the top 1000 detector responses rather than just the top one:
+Detecting at multiple scales is insufficient: we must also allow for more than one object occurrence in the image. In order to to so, the package include a suitalbe `detect` function. This function is similar to `detectAtMultipleScales`, but it returns the top 1000 detector responses rather than just the top one:
 ```matlab
 % Compute detections
 [detections, scores] = detect(im, w, hogCellSize, scales) ;
@@ -267,19 +267,19 @@ Detecting at multiple scales is insufficient: we must also allow for more than o
 
 > **Task:** Open and study `detect.m`. Make sure that you understand how it works.
 
-> **Question:** Why do we want to return so many responses? In practice, it is unlikely that more than an handful of object occurrences may be contained in any given image...
+> **Question:** Why do we want to return so many responses? In practice, it is unlikely that more than a handful of object occurrences may be contained in any given image...
 
-A single object occurrence generates multiple detector responses at nearby image locations and scales. In order to eliminate these redundant detections, we use a *non-maxima suppression* algorithm. This is implemented by the `boxsuppress.m` MATLAB m-file. The algorithm is simple: start from the highest-scoring detection, then remove any other detection whose overlap[^overlap] is greater than a threshold. The function returns a boolean vector `keep` of detections to preserve:
+A single object occurrence generates multiple detector responses at nearby image locations and scales. In order to eliminate these redundant detections, we use a *non-maximum suppression* algorithm. This is implemented by the `boxsuppress.m` MATLAB m-file. The algorithm is simple: start from the highest-scoring detection, then remove any other detection whose overlap[^overlap] is greater than a threshold. The function returns a boolean vector `keep` of detections to preserve:
 
 ```matlab
-% Non-maxima suppression
+% Non-maximum suppression
 keep = boxsuppress(detections, scores, 0.25) ;
 
 detections = detections(:, keep) ;
 scores = scores(keep) ;
 ```
 
-For efficiency, after non-maxima suppression we keep just ten responses (as we do not expect more than a few objects in any image):
+For efficiency, after non-maximum suppression we keep just ten responses (as we do not expect more than a few objects in any image):
 ```matlab
 % Further keep only top detections
 detections = detections(:, 1:10) ;
@@ -294,7 +294,7 @@ We are now going to look at properly evaluating our detector. We use the [PASCAL
     1. The candidate detections $(b_i,s_i)$ are sorted by decreasing score $s_i$.
     2. For each candidate detection in order:
         a. If there is a matching ground truth detection $g_j$ ($\operatorname{overlap}(b_i,g_j)$ larger than 50%), the candidate detection is considered positive ($y_i=+1$). Furthermore, the ground truth detection is *removed from the list* and not considered further.
-        b. Otherwise ,the candidate detection is negative ($y_i=-1$).
+        b. Otherwise, the candidate detection is negative ($y_i=-1$).
 2. Add each ground truth object $g_i$ that is still unassigned to the list of candidates as pair $(g_j, -\infty)$ with label $y_j=+1$.
 
 The overlap metric used to compare a candidate detection to a ground truth bounding box is defined as the *ratio of the area of the intersection over the area of the union* of the two bounding boxes:
@@ -327,7 +327,7 @@ matches = evalDetections(...
 ```
 The `gtDifficult` flags can be used to mark some ground truth object occurrence as *difficult* and hence ignored in the evaluation. This is used in the PASCAL VOC challenge, but not here (i.e. no object occurrence is considered difficult).
 
-`evalDetections` returns a `matches` structure with several field. We focus here on `matches.detBoxFlags`: this contains a +1 for each detections that was found to be correct and -1 otherwise. We use this to visualize the detection errors:
+`evalDetections` returns a `matches` structure with several fields. We focus here on `matches.detBoxFlags`: this contains a +1 for each detection that was found to be correct and -1 otherwise. We use this to visualize the detection errors:
 ```matlab
 % Visualization
 figure(1) ; clf ;
@@ -346,7 +346,7 @@ figure(2) ; clf ;
 vl_pr(matches.labels, matches.scores) ;
 ```
 
-> **Question:** There are a large number of errors in each image. Should you worry?  Is what manner is the PR curve affected? How would you eliminate the vast majority of those in a practice?
+> **Question:** There are a large number of errors in each image. Should you worry?  In what manner is the PR curve affected? How would you eliminate the vast majority of those in a practice?
 
 ### Step 3.3: Evaluation on multiple images
 
@@ -360,7 +360,7 @@ matches = evaluateModel(testImages, testBoxes, testBoxImages, ...
   w, hogCellSize, scales) ;
 ```
 
-**Note:** The function process an image per time, visualizing the results as it progresses. The PR curve is the result of the *accumulation* of the detections obtained thus far.
+**Note:** The function processes an image per time, visualizing the results as it progresses. The PR curve is the result of the *accumulation* of the detections obtained thus far.
 
 > **Task:** Open the `evaluateModel.m` file in MATLAB and add a breakpoint right at the end of the for loop. Now run the evaluation code again and look at each image individually (use `dbcont` to go to the next image). Check out the correct and incorrect matches in each image and their ranking and the effect of this in the cumulative precision-recall curve.
 
@@ -368,7 +368,7 @@ matches = evaluateModel(testImages, testBoxes, testBoxImages, ...
 
 This part explores more advanced learning methods. So far, the SVM has been learned using a small and randomly sampled number of negative examples. However, in principle, every single patch that does not contain the object can be considered as a negative sample. These are of course too many to be used in practice; unfortunately, random sampling is ineffective as the most interesting (confusing) negative samples are a very small and special subset of all the possible ones.
 
-*Hard negative mining* is a simple technique that allows finding a small set of key negative examples. The idea is simple: we start by training a model without any negative at all, and then we alternate between evaluating the model on the training data to find erroneous responses and adding the corresponding examples to the training set.
+*Hard negative mining* is a simple technique that allows finding a small set of key negative examples. The idea is simple: we start by training a model without any hard negatives at all, and then we alternate between evaluating the model on the training data to find erroneous responses and adding the corresponding examples to the training set.
 
 ### Step 4.1: Train with hard negative mining {#stage4.1}
 
@@ -443,7 +443,7 @@ Use the code supplied in `example5.m` to evaluate the SVM model on a test image 
 
 ### Step 5.4: Detecting symmetric objects with multiple aspects
 
-The basic detectors you have learned so far are *not* invariant to effects such as object deformations, out-of-plane rotations, and partial occlusions that affect most natural objects. Handling these effects requires additional sophistications, including using deformable templates, and mixture of multiple templates.
+The basic detectors you have learned so far are *not* invariant to effects such as object deformations, out-of-plane rotations, and partial occlusions that affect most natural objects. Handling these effects requires additional sophistications, including using deformable templates, and a mixture of multiple templates.
 
 In particular, many objects in nature are symmetric and, as such, their images appear flipped when the objects are seen from the left or the right direction (consider for example a face). This can be handled by a pair of symmetric HOG templates. In this part we will explore this option.
 
@@ -470,7 +470,7 @@ We have now two models, `w` and `w_flipped`, one for each view of the object.
 
 > **Task:** Run both models in turn on the same image, obtaining two list of bounding boxes. Find a way to merge the two lists and visualise the top detections. Convince yourself that you can now detect objects facing either way.
 
-**Hint:** Recall how redundant detections can be removed using non-maxima suppression.
+**Hint:** Recall how redundant detections can be removed using non-maximum suppression.
 
 **Congratulations: This concludes the practical!**
 
