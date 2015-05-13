@@ -477,3 +477,7 @@ We have now two models, `w` and `w_flipped`, one for each view of the object.
    [^nn]: This is part of the MatConvNet toolbox for convolutional neural networks. Nevertheless, there is no neural network discussed here.
 
   [1]: images/cover.jpeg "cover.jpeg"
+
+## History
+
+* Used in the Oxford AIMS CDT, 2014-15

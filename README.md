@@ -2,7 +2,7 @@ Object category detection practical
 ===================================
 
 > A computer vision practical by the Oxford Visual Geometry group,
-> authored by Andrea Vedaldi.
+> authored by Andrea Vedaldi and Andrew Zisserman.
 
 Start from `doc/instructions.html`.
 
@@ -12,13 +12,14 @@ Package contents
 The practical consists of four exercises, organized in the following
 files:
 
-* `exercise1.m` -- Part I: Detection fundamentals
-* `exercise2.m` -- Part II: Multiple scales and learning with an SVM
-* `exercise3.m` -- Part III: Multiple objects and evaluation
-* `exercise4.m` -- Part IV: Hard negative mining
-* `exercise4.m` -- Part V: Train your own object detector
+* `exercise1.m` -- Part 1: Detection fundamentals
+* `exercise2.m` -- Part 2: Multiple scales and learning with an SVM
+* `exercise3.m` -- Part 3: Multiple objects and evaluation
+* `exercise4.m` -- Part 4: Hard negative mining
+* `exercise5.m` -- Part 5: Train your own object detector
 
-The computer vision algorithms are implemented by
+The practical runs in MATLAB and uses
+[MatConvNet](http://www.vlfeat.org/matconvnet) and
 [VLFeat](http://www.vlfeat.org). This package contains the following
 MATLAB functions:
 
