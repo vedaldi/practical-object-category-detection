@@ -2,6 +2,8 @@
 
 mkdir -p data/tmp
 
+cp -vf extra/signs-sample-image.jpg data/
+
 (
     cd data/tmp
     wget -c nc http://benchmark.ini.rub.de/Dataset_GTSDB/TrainIJCNN2013.zip

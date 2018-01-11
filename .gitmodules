@@ -1,3 +1,6 @@
 [submodule "matconvnet"]
 	path = matconvnet
 	url = ssh://git@bitbucket.org/ovl/matconvnet.git
+[submodule "extra/practical"]
+	path = extra/practical
+	url = git@github.com:vedaldi/practical.git

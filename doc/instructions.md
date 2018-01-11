@@ -1,6 +1,6 @@
 # Object category detection practical
 
-This is an [Oxford Visual Geometry Group](http://www.robots.ox.ac.uk/~vgg) computer vision practical, authored by [Andrea Vedaldi](http://www.robots.ox.ac.uk/~vedaldi/) and Andrew Zisserman (Release 2014a).
+This is an [Oxford Visual Geometry Group](http://www.robots.ox.ac.uk/~vgg) computer vision practical, authored by [Andrea Vedaldi](http://www.robots.ox.ac.uk/~vedaldi/) and Andrew Zisserman (Release 2018a).
 
 ![cover][1]
 
@@ -16,9 +16,9 @@ In more detail, the practical explores the following topics: (i) using HOG featu
 
 Read and understand the [requirements and installation instructions](../overview/index.html#installation). The download links for this practical are:
 
-* Code and data: [practical-category-detection-2014a.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a.tar.gz)
-* Code only: [practical-category-detection-2014a-code-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a-code-only.tar.gz)
-* Data only: [practical-category-detection-2014a-data-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2014a-data-only.tar.gz)
+* Code and data: [practical-category-detection-2018a.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2018a.tar.gz)
+* Code only: [practical-category-detection-2018a-code-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2018a-code-only.tar.gz)
+* Data only: [practical-category-detection-2018a-data-only.tar.gz](http://www.robots.ox.ac.uk/~vgg/share/practical-category-detection-2018a-data-only.tar.gz)
 * [Git repository](https://github.com/vedaldi/practical-object-category-detection) (for lab setters and developers)
 
 After the installation is complete, open and edit the script `exercise1.m` in the MATLAB editor. The script contains commented code and a description for all steps of this exercise, relative to [Part I](#part1) of this document. You can cut and paste this code into the MATLAB window to run it, and will need to modify it as you go through the session. Other files `exercise2.m`, `exercise3.m`, and `exercise4.m` are given for [Part II](#part2), [III](#part3), and [IV](part4).
@@ -392,7 +392,7 @@ The next step is to fuse the new negative set with the old one:
 ```matlab
 % Add negatives
 neg = cat(4, neg, moreNeg) ;
-``` 
+```
 
 Note that hard negative mining could select the same negatives at different iterations; the following code squashes these duplicates:
 ```matlab
@@ -474,10 +474,10 @@ We have now two models, `w` and `w_flipped`, one for each view of the object.
 
 **Congratulations: This concludes the practical!**
 
-   [^nn]: This is part of the MatConvNet toolbox for convolutional neural networks. Nevertheless, there is no neural network discussed here.
+[^nn]: This is part of the MatConvNet toolbox for convolutional neural networks. Nevertheless, there is no neural network discussed here.
 
-  [1]: images/cover.jpeg "cover.jpeg"
+[1]: images/cover.jpeg "cover.jpeg"
 
 ## History
 
-* Used in the Oxford AIMS CDT, 2014-15
+* Used in the Oxford AIMS CDT, 2014-18
