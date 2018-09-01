@@ -1,5 +1,7 @@
+__pycache__
+.ipynb_checkpoints
 data
-vlfeat
 doc/base.css
 doc/prism.css
 doc/prism.js
+vlfeat
