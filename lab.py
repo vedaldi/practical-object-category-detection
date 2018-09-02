@@ -99,12 +99,11 @@ def imarraysc(tiles, spacing=0, quiet=False):
     return imsc(mosaic, quiet=quiet)
 
 class HOGNet(nn.ModuleDict):
-    def __init__(self):
+    def __init__(self, cell_size=8, num_orientations=9):
         super(nn.ModuleDict, self).__init__()
         with torch.no_grad():
-            self.use_bilinear_orientation_pooling = False
-            self.num_orientations = 9
-            self.bin_size = 8
+            self.num_orientations = num_orientations
+            self.bin_size = cell_size
 
             # Spatial derivative filters along num_orientations directions
             du = torch.tensor([
@@ -123,6 +122,11 @@ class HOGNet(nn.ModuleDict):
             self['spatial_ders'] = nn.Conv2d(1, self.num_orientations, 3,
                 stride=1, padding=1, bias=False)
             self['spatial_ders'].weight.data = spatial_ders
+
+            # Same as above, but for color images
+            self['spatial_ders_rgb'] = nn.Conv2d(3, self.num_orientations*3, 3,
+                stride=1, padding=1, bias=False, groups=3)
+            self['spatial_ders_rgb'].weight.data = spatial_ders.repeat(3,1,1,1)
             
             if False:
                 plt.figure(1)
@@ -146,10 +150,54 @@ class HOGNet(nn.ModuleDict):
             # (1,1,1,1) replication padding
             self['padding'] = nn.ReplicationPad2d(1)
 
+            # Glyphs for rendering the descriptor
+            gs = 21
+            u = torch.linspace(-1,1,gs).reshape(-1,1).expand(-1,gs)
+            v = u.t()
+            n = torch.sqrt(u*u + v*v) + 1e-12
+            glyphs = []
+            for i in range(self.num_orientations):
+                t = (math.pi / self.num_orientations) * i
+                cos = (math.sin(t) * u + math.cos(-t) * v) / n 
+                glyph = torch.exp(-torch.abs(cos) * 15)
+                dim = 1 if t < math.pi/4 or t > 3*math.pi/4 else 0
+                glyph = (glyph == glyph.max(dim=dim, keepdim=True)[0]).expand_as(glyph)
+                glyph *= (n < 1)
+                glyph = glyph.to(torch.float32)
+                glyphs.append(glyph[None,None,:,:])
+            glyphs = torch.cat(glyphs, 0)
+
+            self['render'] = nn.ConvTranspose2d(self.num_orientations, 1, gs,
+                stride=gs, bias=False)#, output_padding=gs-1)
+            self['render'].weight.data = glyphs
+
+            if False:
+                plt.figure(100)
+                imarraysc(t2im(glyphs))
+                plt.pause(0)            
+
+    def reduce_oriented_gradients(self, oriented_gradients):
+        no = self.num_orientations
+        nc = oriented_gradients.shape[1] // (2*no)
+        og = [None,None,None]
+        n = [None,None,None]
+        for c in range(nc):
+            og[c] = oriented_gradients[:,2*no*c:2*no*(c+1),:,:]
+            n2 = torch.sum(og[c] * og[c], 1, keepdim=True) / no
+            n[c] = torch.sqrt(n2)
+        n_max = n[0]
+        for c in range(1,nc):
+            n_max = torch.max(n[c], n_max)
+        return (
+            og[0] * (n_max == n[0]).to(torch.float32) +
+            og[1] * (n_max == n[1]).to(torch.float32) +
+            og[2] * (n_max == n[2]).to(torch.float32)
+        )
+
     def angular_binning(self, oriented_gradients):
         # Compute the norm of the gradient from the directional derivatives.
         # This can be done by summing their squares.
-        n2 = torch.sum(oriented_gradients * oriented_gradients, 1) / self.num_orientations
+        n2 = torch.sum(oriented_gradients * oriented_gradients, 1, keepdim=True) / self.num_orientations
         n = torch.sqrt(n2)
 
         # Get the cosine of the angle between the gradients and the
@@ -182,7 +230,7 @@ class HOGNet(nn.ModuleDict):
         # individually, then average the results.
         factors = 1 / norms
         factors = self['padding'](factors)
-        factors = factors.expand((-1, 3 * self.num_orientations, -1, -1))
+        #factors = factors.expand((-1, 3 * self.num_orientations, -1, -1))
         
         ncells = (
             torch.clamp(cells * factors[:, :, :-1, :-1], max=0.2) +
@@ -194,20 +242,23 @@ class HOGNet(nn.ModuleDict):
         return ncells
 
     def forward(self, im):
-        oriented_gradients = self['spatial_ders'](im)
+        if im.shape[1] == 1:
+            oriented_gradients = self['spatial_ders'](im)
+        else:
+            oriented_gradients = self['spatial_ders_rgb'](im)
+            oriented_gradients = self.reduce_oriented_gradients(oriented_gradients)
         oriented_histograms = self.angular_binning(oriented_gradients)    
         cells = self['spatial_pool'](oriented_histograms)
-        ncells = self.block_normalization(cells)
-        hog = torch.clamp(ncells, max=0.2)
+        hog = self.block_normalization(cells)
+        return hog
 
-        if False:
-            np.savetxt('/tmp/x8.txt', ncells.detach().numpy().reshape(-1))
-            plt.figure(1)
-            lab.imarraysc(lab.t2im(oriented_gradients), spacing=1)
-            plt.figure(2)
-            lab.imarraysc(lab.t2im(oriented_histograms), spacing=1)
-            plt.figure(3)
-            lab.imarraysc(lab.t2im(cells), spacing=1)
-            plt.figure(4)
-            lab.imarraysc(lab.t2im(ncells), spacing=1)
-            plt.pause(1e-4)
+    def to_image(self, hog):
+        with torch.no_grad():
+            weight = (
+                hog[:,:self.num_orientations,:,:] + 
+                hog[:,self.num_orientations:self.num_orientations*2,:,:] +
+                hog[:,self.num_orientations*2:,:,:]
+            )
+            im = self['render'](weight)
+            im = torch.clamp(im, weight.min(), weight.max())
+        return im
