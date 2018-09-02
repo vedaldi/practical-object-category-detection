@@ -1,5 +1,6 @@
 __pycache__
 .ipynb_checkpoints
+.vscode/tags
 data
 doc/base.css
 doc/prism.css
