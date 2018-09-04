@@ -262,3 +262,79 @@ class HOGNet(nn.ModuleDict):
             im = self['render'](weight)
             im = torch.clamp(im, weight.min(), weight.max())
         return im
+
+def load_data(meta_class='all'):
+    imdb = torch.load('data/signs-data.pth')
+    if meta_class is 'prohibitory':
+        meta_labels = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 15, 16]
+    elif meta_class is 'mandatory':
+        meta_labels = [33, 34, 35, 36, 37, 38, 39, 40]
+    elif meta_class is 'danger':
+        meta_labels = [11, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+    elif meta_class is 'all':
+        meta_labels = range(43)
+    else:
+        raise ValueError('The value of meta_label is not recognized.')
+
+    for subset in ['train', 'val']:
+        labels = [x.item() for x in imdb[subset]['box_labels']]
+        sel = [i for i, x in enumerate(labels) if x in meta_labels]
+        imdb[subset]['boxes'] = imdb[subset]['boxes'][sel,:]
+        imdb[subset]['box_images'] = [imdb[subset]['box_images'][i] for i in sel]
+        imdb[subset]['box_labels'] = imdb[subset]['box_labels'][sel]
+        imdb[subset]['box_patches'] = imdb[subset]['box_patches'][sel,:,:,:]
+        imdb[subset]['images'] = sorted(list(set(imdb[subset]['box_images'])))
+
+    return imdb
+
+def svm_sdca(x, c, lam=0.01, epsilon=0.0005, num_epochs=1000):
+    "Train an SVM using the SDCA algorithm."
+    with torch.no_grad():
+        xb = 1
+        n = x.shape[0]
+        d = x.shape[1]
+        alpha = torch.zeros(n)
+        w = torch.zeros(d)
+        b = 0
+        A = ((x * x).sum(1) + (xb * xb)) / (lam * n)
+
+        lb_log = []
+        ub_log = []
+        lb = 0
+
+        for epoch in range(num_epochs):
+            perm = np.random.permutation(n)
+            for i in perm:
+                B = x[i] @ w + xb * b
+                dalpha = (c[i] - B) / A[i]
+                dalpha = c[i] * max(0, min(1, c[i] * (dalpha + alpha[i]))) - alpha[i]
+                lb -= (A[i]/2 * (dalpha**2) + (B - c[i])*dalpha) / n
+                w += (dalpha / (lam * n)) * x[i]
+                b += (dalpha / (lam * n)) * xb
+                alpha[i] += dalpha  
+
+            scores = x @ w + xb * b
+            ub = torch.clamp(1 - c * scores, min=0).mean() + (lam/2) * (w * w).sum() + (lam/2) * (b * b)
+            lb_log.append(lb.item())
+            ub_log.append(ub.item())        
+            finish = (epoch + 1 == num_epochs) or (ub_log[-1] - lb_log[-1] < epsilon)
+
+            if (epoch % 10 == 0) or finish:
+                print(f"SDCA epoch: {epoch: 2d} lower bound: {lb_log[-1]:.3f} upper bound: {ub_log[-1]:.3f}")
+
+            if ((epoch > 0) and (epoch % 200 == 0)) or finish:
+                plt.figure(1)
+                plt.clf()
+                plt.title('SDCA optimization')
+                plt.plot(lb_log)
+                plt.plot(ub_log, '--')
+                plt.legend(('lower bound', 'upper bound'))
+                plt.xlabel('iteration')
+                plt.ylabel('energy')
+                plt.pause(0.0001)
+
+            if finish:
+                break
+
+    return w, xb * b
+
