@@ -114,7 +114,9 @@ class HOGNet(nn.ModuleDict):
         super(nn.ModuleDict, self).__init__()
         with torch.no_grad():
             self.num_orientations = num_orientations
-            self.cell_size = cell_size
+            self.cell_size = cell_size            
+            no = self.num_orientations
+            cs = self.cell_size
 
             # Spatial derivative filters
             d = torch.tensor([-1, 0, 1], dtype=torch.float32) / 2
@@ -122,31 +124,34 @@ class HOGNet(nn.ModuleDict):
             self['dv']     = nn.Conv2d(1, 1, (3,1), stride=1, padding=(1,0), bias=False)
             self['du_rgb'] = nn.Conv2d(3, 3, (1,3), stride=1, padding=(0,1), bias=False, groups=3)
             self['dv_rgb'] = nn.Conv2d(3, 3, (3,1), stride=1, padding=(1,0), bias=False, groups=3)
-
             self['du'].weight.data = d.reshape(1,1,1,3).clone()
             self['dv'].weight.data = d.reshape(1,1,3,1).clone()
             self['du_rgb'].weight.data = d.reshape(1,1,1,3).expand(3,1,1,3).clone()
             self['dv_rgb'].weight.data = d.reshape(1,1,3,1).expand(3,1,3,1).clone()
 
             # Directional projection filters
-            orient = torch.zeros((2*self.num_orientations, 2, 1, 1), dtype=torch.float32)
-            for i in range(2 * self.num_orientations):
-                angle = (2 * math.pi) / (2 * self.num_orientations) * i
+            orient = torch.zeros((2 * no, 2, 1, 1), dtype=torch.float32)
+            for i in range(2 * no):
+                angle = (2 * math.pi) / (2 * no) * i
                 orient[i,0] = math.cos(angle)
                 orient[i,1] = math.sin(angle)
 
-            self['orient'] = nn.Conv2d(2, 2 * self.num_orientations, 1, stride=1, bias=False)
+            self['orient'] = nn.Conv2d(2, 2 * no, 1, stride=1, bias=False)
             self['orient'].weight.data = orient
 
             # Bilinear spatial binning into cell_size x cell_size cells
-            a = 1 - torch.abs((torch.Tensor(range(1,2*self.cell_size+1)) - (2*self.cell_size+1)/2)/self.cell_size)
-            bilinear_filter = a.reshape(-1,1) @ a.reshape(1,-1)
-            bilinear_filter = bilinear_filter[None,None,:]
-            bilinear_filter = bilinear_filter.expand(2 * self.num_orientations,*bilinear_filter.shape[1:])
+            window = 1 - torch.abs((torch.Tensor(range(1, 2*cs + 1)) - (2*cs + 1)/2)/cs)
+            self['poolu'] = nn.Conv2d(2*no, 2*no, (1, 2*cs), padding=(0, cs//2), stride=(1, cs), bias=False, groups=2*no)
+            self['poolv'] = nn.Conv2d(2*no, 2*no, (2*cs, 1), padding=(cs//2, 0), stride=(cs, 1), bias=False, groups=2*no)
+            self['poolu'].weight.data = window.reshape(1,1,1,-1).expand(2*no,-1,-1,-1).clone()
+            self['poolv'].weight.data = window.reshape(1,1,-1,1).expand(2*no,-1,-1,-1).clone()
 
-            self['spatial_pool'] = nn.Conv2d(2 * self.num_orientations, 2 * self.num_orientations, 2 * self.cell_size,
-            stride=self.cell_size, padding=self.cell_size//2, bias=False, groups=2 * self.num_orientations)
-            self['spatial_pool'].weight.data = bilinear_filter
+            # bilinear_filter = bilinear_filter[None,None,:]
+            # bilinear_filter = bilinear_filter.expand(2 * no, *bilinear_filter.shape[1:])
+
+            # self['spatial_pool'] = nn.Conv2d(2 * no, 2 * no, 2 * self.cell_size,
+            # stride=self.cell_size, padding=self.cell_size//2, bias=False, groups=2 * no)
+            # self['spatial_pool'].weight.data = bilinear_filter
 
             # 2x2 block pooling
             self['block_pool'] = nn.Conv2d(self.num_orientations, 1, 2, bias=False)
@@ -197,7 +202,7 @@ class HOGNet(nn.ModuleDict):
         oriented_gradients = self['orient'](torch.cat((du,dv), 1))
         return oriented_gradients, n2
 
-    @profile
+#    @profile
     def angular_binning(self, oriented_gradients, norms2):
         # Compute the norm of the gradient from the directional derivatives.
         # This can be done by summing their squares.
@@ -207,18 +212,20 @@ class HOGNet(nn.ModuleDict):
         # Get the cosine of the angle between the gradients and the
         # reference directions.
         cosines = oriented_gradients * factors
-        cosines = torch.clamp(cosines, -1, 1)
 
-        # Recover the angles from the cosines.
+        # Recover the angles from the cosines and compute the bins
         if False:
+            cosines = torch.clamp(cosines, -1, 1)
             angles = torch.acos(cosines)
+            bin_weights = 1 - (2 * self.num_orientations)/(2 * math.pi) * angles
         else:
-            # cos x = y = 1 - x^2/2
-            # acos y = sqrt(2*(x - 1))
-            angles = torch.sqrt(2*(1 - cosines))
+            # cos x = y ~ 1 - x^2/2
+            # acos y ~ sqrt(2*(x - 1))
+            cosines = torch.clamp(cosines, max=1)
+            angles_sqrt2 = torch.sqrt(1 - cosines)
+            bin_weights = 1 - (math.sqrt(2) * self.num_orientations / math.pi) * angles_sqrt2
 
         # Get the bilinear angular binning coefficients.
-        bin_weights = 1 - (2 * self.num_orientations)/(2 * math.pi) * angles
         bins = torch.clamp(bin_weights, min=0)
 
         return norms * bins
@@ -249,11 +256,12 @@ class HOGNet(nn.ModuleDict):
 
         return ncells
 
-    @profile
+#    @profile
     def forward(self, im):
         oriented_gradients, norms = self.compute_oriented_gradients(im)
         oriented_histograms = self.angular_binning(oriented_gradients, norms)    
-        cells = self['spatial_pool'](oriented_histograms)
+        cells = self['poolu'](oriented_histograms)
+        cells = self['poolv'](cells)
         hog = self.block_normalization(cells)
         return hog
 
