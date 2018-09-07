@@ -388,7 +388,7 @@ def eval_detections(gt_boxes, boxes, threshold=0.5, plot=False, gt_difficult=Non
         if plot:
             for box in gt_boxes:
                 plot_box(box, color='y')
-            for box, label in zip(boxes, labels):
+            for box, label in reversed(list(zip(boxes, labels))):
                 plot_box(box, color='g' if label > 0 else 'r')
 
         return {

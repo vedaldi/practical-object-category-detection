@@ -32,21 +32,22 @@ if False:
     print(results)
     plt.pause(0)
 
-#x = lab.imread('data/mandatory.jpg')
-x = lab.imread('data/signs/00030.jpeg')
+x = lab.imread('data/mandatory.jpg')
+#x = lab.imread('data/signs/00030.jpeg')
 x = x.mean(1, keepdim=True)
 net = lab.HOGNet()
 
 #cProfile.run('hog = net(x)', sort='line')
+torch.set_grad_enabled(False)
+for t in range(10):
+    hog = net(x)
+np.savetxt('/tmp/x8.txt', hog.detach().numpy().reshape(-1))
 
-hog = net(x)
-#np.savetxt('/tmp/x8.txt', hog.detach().numpy().reshape(-1))
+plt.figure(4)
+lab.imarraysc(lab.t2im(hog), spacing=1)
 
-# plt.figure(4)
-# lab.imarraysc(lab.t2im(hog), spacing=1)
-
-# plt.figure(5)
-# hogim = net.to_image(hog)
-# lab.imarraysc(hogim)
-# plt.pause(0)
+plt.figure(5)
+hogim = net.to_image(hog)
+lab.imarraysc(hogim)
+plt.pause(0)
 pass

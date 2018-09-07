@@ -4,9 +4,9 @@ run ~/src/vlfeat/toolbox/vl_setup
 run ~/src/matconvnet/matlab/vl_setupnn ;
 addpath('/Users/vedaldi/Documents/Publications/2014/mahendran15understanding/code');
 
-im = imread('data/signs-sample-image.jpg');
+im = imread('data/mandatory.jpg');
 im = im2single(im);
-%im = mean(im,3);
+im = mean(im,3);
 
 net = hog_net(8);
 net = vl_simplenn_tidy(net);
@@ -31,6 +31,7 @@ disp(mean(abs(x(:)-x_(:))))
 function [a,x,x_] = cmp(x,file)
 sz = [size(x),1] ;
 x_ = load(file) ;
+size(x_)
 h = sz(1) ;
 w = sz(2) ;
 c = sz(3) ;
