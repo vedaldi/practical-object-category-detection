@@ -113,33 +113,27 @@ class HOGNet(nn.ModuleDict):
             self.num_orientations = num_orientations
             self.cell_size = cell_size
 
-            # Spatial derivative filters along num_orientations directions
-            du = torch.tensor([
-                [ 0, 0, 0],
-                [-1, 0, 1],
-                [ 0, 0, 0]
-            ], dtype=torch.float32) / 2
-            dv = du.t()
-            spatial_ders = []
+            # Spatial derivative filters
+            d = torch.tensor([-1, 0, 1], dtype=torch.float32) / 2
+            self['du']     = nn.Conv2d(1, 1, (1,3), stride=1, padding=(0,1), bias=False)
+            self['dv']     = nn.Conv2d(1, 1, (3,1), stride=1, padding=(1,0), bias=False)
+            self['du_rgb'] = nn.Conv2d(3, 3, (1,3), stride=1, padding=(0,1), bias=False, groups=3)
+            self['dv_rgb'] = nn.Conv2d(3, 3, (3,1), stride=1, padding=(1,0), bias=False, groups=3)
+
+            self['du'].weight.data = d.reshape(1,1,1,3).clone()
+            self['dv'].weight.data = d.reshape(1,1,3,1).clone()
+            self['du_rgb'].weight.data = d.reshape(1,1,1,3).expand(3,1,1,3).clone()
+            self['dv_rgb'].weight.data = d.reshape(1,1,3,1).expand(3,1,3,1).clone()
+
+            # Directional projection filters
+            orient = torch.zeros((2*self.num_orientations, 2, 1, 1), dtype=torch.float32)
             for i in range(2 * self.num_orientations):
-                t = (2 * math.pi) / (2 * self.num_orientations) * i
-                der = math.cos(t) * du + math.sin(t) * dv
-                spatial_ders.append(der[None,None,:])
-            spatial_ders = torch.cat(spatial_ders, 0)
+                angle = (2 * math.pi) / (2 * self.num_orientations) * i
+                orient[i,0] = math.cos(angle)
+                orient[i,1] = math.sin(angle)
 
-            self['spatial_ders'] = nn.Conv2d(1, self.num_orientations, 3,
-                stride=1, padding=1, bias=False)
-            self['spatial_ders'].weight.data = spatial_ders
-
-            # Same as above, but for color images
-            self['spatial_ders_rgb'] = nn.Conv2d(3, self.num_orientations*3, 3,
-                stride=1, padding=1, bias=False, groups=3)
-            self['spatial_ders_rgb'].weight.data = spatial_ders.repeat(3,1,1,1)
-            
-            if False:
-                plt.figure(1)
-                lab.imarraysc(spatial_ders, spacing=1)
-                plt.pause(0)
+            self['orient'] = nn.Conv2d(2, 2 * self.num_orientations, 1, stride=1, bias=False)
+            self['orient'].weight.data = orient
 
             # Bilinear spatial binning into cell_size x cell_size cells
             a = 1 - torch.abs((torch.Tensor(range(1,2*self.cell_size+1)) - (2*self.cell_size+1)/2)/self.cell_size)
@@ -184,33 +178,30 @@ class HOGNet(nn.ModuleDict):
                 imarraysc(t2im(glyphs))
                 plt.pause(0)            
 
-    def reduce_oriented_gradients(self, oriented_gradients):
-        no = self.num_orientations
-        nc = oriented_gradients.shape[1] // (2*no)
-        og = [None,None,None]
-        n = [None,None,None]
-        for c in range(nc):
-            og[c] = oriented_gradients[:,2*no*c:2*no*(c+1),:,:]
-            n2 = torch.sum(og[c] * og[c], 1, keepdim=True) / no
-            n[c] = torch.sqrt(n2)
-        n_max = n[0]
-        for c in range(1,nc):
-            n_max = torch.max(n[c], n_max)
-        return (
-            og[0] * (n_max == n[0]).to(torch.float32) +
-            og[1] * (n_max == n[1]).to(torch.float32) +
-            og[2] * (n_max == n[2]).to(torch.float32)
-        )
+    def compute_oriented_gradients(self, im):
+        if im.shape[1] == 1:
+            du = self['du'](im)
+            dv = self['dv'](im)
+            n2 = du*du + dv*dv
+        else:
+            du = self['du_rgb'](im)
+            dv = self['dv_rgb'](im)
+            n2 = du*du + dv*dv
+            n2, indices = torch.max(n2, 1, keepdim=True)
+            du = torch.gather(du, 1, indices)
+            dv = torch.gather(dv, 1, indices)
 
-    def angular_binning(self, oriented_gradients):
+        oriented_gradients = self['orient'](torch.cat((du,dv), 1))
+        return oriented_gradients, n2
+
+    def angular_binning(self, oriented_gradients, norms2):
         # Compute the norm of the gradient from the directional derivatives.
         # This can be done by summing their squares.
-        n2 = torch.sum(oriented_gradients * oriented_gradients, 1, keepdim=True) / self.num_orientations
-        n = torch.sqrt(n2)
+        norms = torch.sqrt(norms2)
 
         # Get the cosine of the angle between the gradients and the
         # reference directions.
-        cosines = oriented_gradients / torch.clamp(n, min=1e-15)
+        cosines = oriented_gradients / torch.clamp(norms, min=1e-15)
         cosines = torch.clamp(cosines, -1, 1)
 
         # Recover the angles from the cosines.
@@ -220,7 +211,7 @@ class HOGNet(nn.ModuleDict):
         bin_weights = 1 - (2 * self.num_orientations)/(2 * math.pi) * angles
         bins = torch.clamp(bin_weights, min=0)
 
-        return n * bins
+        return norms * bins
 
     def block_normalization(self, cells):
         # Compute the unoriented gradient cells
@@ -250,12 +241,8 @@ class HOGNet(nn.ModuleDict):
         return ncells
 
     def forward(self, im):
-        if im.shape[1] == 1:
-            oriented_gradients = self['spatial_ders'](im)
-        else:
-            oriented_gradients = self['spatial_ders_rgb'](im)
-            oriented_gradients = self.reduce_oriented_gradients(oriented_gradients)
-        oriented_histograms = self.angular_binning(oriented_gradients)    
+        oriented_gradients, norms = self.compute_oriented_gradients(im)
+        oriented_histograms = self.angular_binning(oriented_gradients, norms)    
         cells = self['spatial_pool'](oriented_histograms)
         hog = self.block_normalization(cells)
         return hog
@@ -330,7 +317,7 @@ def plot_box(box, color='y'):
     plt.gca().add_patch(r2)
     plt.gca().add_patch(r1)
     
-def pr(labels, scores, misses=0):
+def pr(labels, scores, misses=0, plot=True):
     "Plot the precision-recall curve."
     scores, perm = torch.sort(scores, descending=True)
     labels = labels[perm]
@@ -342,11 +329,12 @@ def pr(labels, scores, misses=0):
     # which would case mean() to nan
     ap = precision[tp > 0]
     ap = ap.mean() if len(ap) > 0 else 0
-    plt.plot(recall.numpy(), precision.numpy())
-    plt.xlabel('recall')
-    plt.ylabel('precision')
-    plt.xlim(0,1.01)
-    plt.ylim(0,1.01)
+    if plot:
+        plt.plot(recall.numpy(), precision.numpy())
+        plt.xlabel('recall')
+        plt.ylabel('precision')
+        plt.xlim(0,1.01)
+        plt.ylim(0,1.01)
     return precision, recall, ap
 
 def eval_detections(gt_boxes, boxes, threshold=0.5, plot=False, gt_difficult=None):
