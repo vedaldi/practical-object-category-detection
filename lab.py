@@ -5,8 +5,16 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional  as F
+import matplotlib
 from matplotlib import pyplot as plt
 from PIL import Image
+
+def reset_random_seeds(seed=0):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 def t2im(x):
     """Rearrange the N x K x H x W to have shape (NK) x 1 x H x W.
@@ -103,7 +111,7 @@ class HOGNet(nn.ModuleDict):
         super(nn.ModuleDict, self).__init__()
         with torch.no_grad():
             self.num_orientations = num_orientations
-            self.bin_size = cell_size
+            self.cell_size = cell_size
 
             # Spatial derivative filters along num_orientations directions
             du = torch.tensor([
@@ -133,14 +141,14 @@ class HOGNet(nn.ModuleDict):
                 lab.imarraysc(spatial_ders, spacing=1)
                 plt.pause(0)
 
-            # Bilinear spatial binning into bin_size x bin_size cells
-            a = 1 - torch.abs((torch.Tensor(range(1,2*self.bin_size+1)) - (2*self.bin_size+1)/2)/self.bin_size)
+            # Bilinear spatial binning into cell_size x cell_size cells
+            a = 1 - torch.abs((torch.Tensor(range(1,2*self.cell_size+1)) - (2*self.cell_size+1)/2)/self.cell_size)
             bilinear_filter = a.reshape(-1,1) @ a.reshape(1,-1)
             bilinear_filter = bilinear_filter[None,None,:]
             bilinear_filter = bilinear_filter.expand(2 * self.num_orientations,*bilinear_filter.shape[1:])
 
-            self['spatial_pool'] = nn.Conv2d(2 * self.num_orientations, 2 * self.num_orientations, 2 * self.bin_size,
-            stride=self.bin_size, padding=self.bin_size//2, bias=False, groups=2 * self.num_orientations)
+            self['spatial_pool'] = nn.Conv2d(2 * self.num_orientations, 2 * self.num_orientations, 2 * self.cell_size,
+            stride=self.cell_size, padding=self.cell_size//2, bias=False, groups=2 * self.num_orientations)
             self['spatial_pool'].weight.data = bilinear_filter
 
             # 2x2 block pooling
@@ -286,6 +294,103 @@ def load_data(meta_class='all'):
         imdb[subset]['images'] = sorted(list(set(imdb[subset]['box_images'])))
 
     return imdb
+
+def box_overlap(boxes1, boxes2, measure='iou'):
+    """Compute the intersection over union of bounding boxes
+
+    Arguments:
+        boxes1 {torch.Tensor} -- N1 x 4 tensor with [x0,y0,x1,y1] for N boxes.
+                                 For one box, a 4 tensor is also supported.
+        boxes2 {torch.Tensor} -- N2 x 4 tensor.
+
+    Returns:
+        torch.Tensor -- N1 x N2 tensor with the IoU overlaps.
+    """
+    boxes1 = boxes1.reshape(-1,1,4)
+    boxes2 = boxes2.reshape(1,-1,4)
+    areas1 = torch.prod(boxes1[:,:,:2] - boxes1[:,:,2:], 2)
+    areas2 = torch.prod(boxes2[:,:,:2] - boxes2[:,:,2:], 2)
+
+    max_ = torch.max(boxes1[:,:,:2], boxes2[:,:,:2])
+    min_ = torch.min(boxes1[:,:,2:], boxes2[:,:,2:])
+    intersections = torch.prod(torch.clamp(min_ - max_, min=0), 2)
+
+    overlaps = intersections / (areas1 + areas2 - intersections)
+    return overlaps
+
+def plot_box(box, color='y'):
+    r1 = matplotlib.patches.Rectangle(box[:2],
+                                     box[2]-box[0], box[3]-box[1],
+                                     facecolor='none', linestyle='solid',
+                                     edgecolor=color, linewidth=3)
+    r2 = matplotlib.patches.Rectangle(box[:2],
+                                     box[2]-box[0], box[3]-box[1],
+                                     facecolor='none', linestyle='solid',
+                                     edgecolor='k', linewidth=5)
+    plt.gca().add_patch(r2)
+    plt.gca().add_patch(r1)
+    
+def pr(labels, scores, misses=0):
+    "Plot the precision-recall curve."
+    scores, perm = torch.sort(scores, descending=True)
+    labels = labels[perm]
+    tp = (labels > 0).to(torch.float32)
+    ttp = torch.cumsum(tp, 0)
+    precision = ttp / torch.arange(1, len(tp)+1, dtype=torch.float32)
+    recall = ttp / torch.clamp(tp.sum() + misses, min=1)
+    # Labels may contain no positive labels (perhaps because misses>0)
+    # which would case mean() to nan
+    ap = precision[tp > 0]
+    ap = ap.mean() if len(ap) > 0 else 0
+    plt.plot(recall.numpy(), precision.numpy())
+    plt.xlabel('recall')
+    plt.ylabel('precision')
+    plt.xlim(0,1.01)
+    plt.ylim(0,1.01)
+    return precision, recall, ap
+
+def eval_detections(gt_boxes, boxes, threshold=0.5, plot=False, gt_difficult=None):
+    with torch.no_grad():
+        # Compute the overlap between ground-truth boxes and detected ones
+        overlaps = box_overlap(boxes, gt_boxes)
+
+        # Match each box to a gt box
+        overlaps, box_to_gt = torch.max(overlaps, dim=1)
+        matched = overlaps > threshold
+        labels = -torch.ones(len(boxes))
+        labels[matched] = +1
+
+        # Discount the boxes that match difficult gts
+        if gt_difficult is not None:
+            discounted = matched & gt_difficult[box_to_gt]
+            matched &= discounted ^ 1 # logic negation as XOR
+            labels[discounted.nonzero()] = 0
+
+        misses = 0
+        gt_to_box = torch.full((len(gt_boxes),), -1, dtype=torch.int64)
+        for i in range(len(gt_boxes)):
+            if gt_difficult is not None and gt_difficult[i]:
+                continue
+            j = torch.nonzero((box_to_gt == i) & matched)
+            if len(j) == 0:
+                misses += 1
+            else:
+                gt_to_box[i] = j[0]
+                labels[j[1:]] = -1
+            matched[j] = 0
+        
+        if plot:
+            for box in gt_boxes:
+                plot_box(box, color='y')
+            for box, label in zip(boxes, labels):
+                plot_box(box, color='g' if label > 0 else 'r')
+
+        return {
+            'gt_to_box': gt_to_box,
+            'box_to_gt': box_to_gt,
+            'labels': labels,
+            'misses': misses,
+        }
 
 def svm_sdca(x, c, lam=0.01, epsilon=0.0005, num_epochs=1000):
     "Train an SVM using the SDCA algorithm."

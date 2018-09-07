@@ -29,6 +29,8 @@ with open(os.path.join(prefix, 'gt.txt')) as f:
         images[-1] = os.path.join('data', 'signs', base + '.jpeg')
         print(f"Added {images[-1]}")
 
+lab.reset_random_seeds()
+
 patches = torch.cat(patches, 0)
 
 # Split images into train and test
@@ -44,7 +46,7 @@ def get(lst, bools):
 def get_dict(subset):
     return {
         'images' : sorted(list(set(get(images, subset)))),
-        'boxes' : torch.tensor(boxes)[subset],
+        'boxes' : torch.tensor(boxes)[subset].float(),
         'box_images' : get(images, subset),
         'box_labels' : torch.tensor(labels)[subset],
         'box_patches' : patches[subset],
