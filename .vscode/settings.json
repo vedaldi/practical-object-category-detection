@@ -1,0 +1,6 @@
+{
+    "python.linting.pylintArgs": [
+        "-generated-members=numpy.*,torch.*"
+    ],
+    "python.pythonPath": "/Users/vedaldi/miniconda3/envs/practical/bin/python"
+}

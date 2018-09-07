@@ -7,7 +7,10 @@ import torch.nn as nn
 import torch.nn.functional  as F
 import matplotlib
 from matplotlib import pyplot as plt
+import line_profiler
 from PIL import Image
+
+# kernprof -l test.py ; python -m line_profiler test.py.lprof
 
 def reset_random_seeds(seed=0):
     random.seed(seed)
@@ -194,18 +197,25 @@ class HOGNet(nn.ModuleDict):
         oriented_gradients = self['orient'](torch.cat((du,dv), 1))
         return oriented_gradients, n2
 
+    @profile
     def angular_binning(self, oriented_gradients, norms2):
         # Compute the norm of the gradient from the directional derivatives.
         # This can be done by summing their squares.
         norms = torch.sqrt(norms2)
+        factors = 1 / torch.clamp(norms, min=1e-15)
 
         # Get the cosine of the angle between the gradients and the
         # reference directions.
-        cosines = oriented_gradients / torch.clamp(norms, min=1e-15)
+        cosines = oriented_gradients * factors
         cosines = torch.clamp(cosines, -1, 1)
 
         # Recover the angles from the cosines.
-        angles = torch.acos(cosines)
+        if False:
+            angles = torch.acos(cosines)
+        else:
+            # cos x = y = 1 - x^2/2
+            # acos y = sqrt(2*(x - 1))
+            angles = torch.sqrt(2*(1 - cosines))
 
         # Get the bilinear angular binning coefficients.
         bin_weights = 1 - (2 * self.num_orientations)/(2 * math.pi) * angles
@@ -229,7 +239,6 @@ class HOGNet(nn.ModuleDict):
         # individually, then average the results.
         factors = 1 / norms
         factors = self['padding'](factors)
-        #factors = factors.expand((-1, 3 * self.num_orientations, -1, -1))
         
         ncells = (
             torch.clamp(cells * factors[:, :, :-1, :-1], max=0.2) +
@@ -240,6 +249,7 @@ class HOGNet(nn.ModuleDict):
 
         return ncells
 
+    @profile
     def forward(self, im):
         oriented_gradients, norms = self.compute_oriented_gradients(im)
         oriented_histograms = self.angular_binning(oriented_gradients, norms)    
