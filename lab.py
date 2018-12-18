@@ -7,10 +7,7 @@ import torch.nn as nn
 import torch.nn.functional  as F
 import matplotlib
 from matplotlib import pyplot as plt
-import line_profiler
 from PIL import Image
-
-# kernprof -l test.py ; python -m line_profiler test.py.lprof
 
 def reset_random_seeds(seed=0):
     random.seed(seed)
@@ -202,7 +199,6 @@ class HOGNet(nn.ModuleDict):
         oriented_gradients = self['orient'](torch.cat((du,dv), 1))
         return oriented_gradients, n2
 
-#    @profile
     def angular_binning(self, oriented_gradients, norms2):
         # Compute the norm of the gradient from the directional derivatives.
         # This can be done by summing their squares.
@@ -256,7 +252,6 @@ class HOGNet(nn.ModuleDict):
 
         return ncells
 
-#    @profile
     def forward(self, im):
         oriented_gradients, norms = self.compute_oriented_gradients(im)
         oriented_histograms = self.angular_binning(oriented_gradients, norms)    
@@ -300,6 +295,19 @@ def load_data(meta_class='all'):
 
     return imdb
 
+def boxes_for_scores(model, scores, cell_size=8):
+    mh = model.kernel_size[0]
+    mw = model.kernel_size[1]
+    with torch.no_grad():
+        h = scores.shape[1]
+        w = scores.shape[2]
+        v0 = torch.arange(h, dtype=torch.float32).reshape(1,-1,1)
+        u0 = torch.arange(w, dtype=torch.float32).reshape(1,1,-1)
+        v1 = v0 + mh
+        u1 = u0 + mw
+        boxes = torch.cat([(x * cell_size).expand(1,h,w) for x in [u0,v0,u1,v1]], 0)
+    return boxes
+
 def box_overlap(boxes1, boxes2, measure='iou'):
     """Compute the intersection over union of bounding boxes
 
@@ -322,6 +330,54 @@ def box_overlap(boxes1, boxes2, measure='iou'):
 
     overlaps = intersections / (areas1 + areas2 - intersections)
     return overlaps
+
+def detect_at_multiple_scales(w, scales, pil_image, use_gpu=False):
+    # Wrap parameters w in a convolutional layer.
+    model = nn.Conv2d(27, 1, w.shape[2:], bias=False)
+    model.weight.data = w
+    cell_size = hog_extractor.cell_size
+    
+    # Send model to GPU if needed.
+    device = torch.device("cuda" if use_gpu else "cpu")
+    hog_extractor_device = copy.deepcopy(hog_extractor).to(device)
+    model = model.to(device)
+
+    # Search for strong responses across different scales.
+    all_boxes = []
+    all_scores = []
+    all_hogs = []
+    for t, scale in enumerate(scales):
+        # Scale the input image.
+        size = [int(round(x/scale)) for x in pil_image.size]
+        scaled_image = pil_image.resize(size)
+
+        # Skip if the scaled image is smaller than 2 x 2 HOG cells.
+        if scaled_image.size[0] < 2*cell_size or scaled_image.size[1] < 2*cell_size:
+            continue
+
+        # Extract its HOG representation.
+        hog = hog_extractor_device(lab.pil_to_torch(scaled_image).to(device))
+
+        # Skip if the HOG representation is smaller than the model.
+        if hog.shape[2] < w.shape[2] or hog.shape[3] < w.shape[3]:
+            continue
+            
+        # Apply the model convolutionally.
+        scores = model(hog)
+        scores = scores.to("cpu")
+        
+        # Get the boxes and reshape them into a N x 4 list.
+        boxes = scale * boxes_for_scores(model, scores[0])
+        boxes = boxes.reshape(4,-1).permute(1,0)
+        scores = scores.reshape(-1)
+        
+        # Store for later.
+        all_boxes.append(boxes)
+        all_scores.append(scores)
+        all_hogs.append(hog.to("cpu"))
+                                 
+    # Concatenate results.
+    return torch.cat(all_boxes, 0), torch.cat(all_scores, 0), all_hogs
 
 def plot_box(box, color='y'):
     r1 = matplotlib.patches.Rectangle(box[:2],
