@@ -2,6 +2,7 @@ import math
 import random
 import numpy as np
 import time
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional  as F
@@ -271,6 +272,53 @@ class HOGNet(nn.ModuleDict):
             im = torch.clamp(im, weight.min(), weight.max())
         return im
 
+    def detect_at_multiple_scales(self, w, scales, pil_image, use_gpu=False):
+        # Wrap parameters w in a convolutional layer.
+        model = nn.Conv2d(27, 1, w.shape[2:], bias=False)
+        model.weight.data = w
+        
+        # Send model to GPU if needed.
+        device = torch.device("cuda" if use_gpu else "cpu")
+        hog_extractor_device = copy.deepcopy(self).to(device)
+        model = model.to(device)
+
+        # Search for strong responses across different scales.
+        all_boxes = []
+        all_scores = []
+        all_hogs = []
+        for t, scale in enumerate(scales):
+            # Scale the input image.
+            size = [int(round(x/scale)) for x in pil_image.size]
+            scaled_image = pil_image.resize(size)
+
+            # Skip if the scaled image is smaller than 2 x 2 HOG cells.
+            if scaled_image.size[0] < 2*self.cell_size or scaled_image.size[1] < 2*self.cell_size:
+                continue
+
+            # Extract its HOG representation.
+            hog = hog_extractor_device(pil_to_torch(scaled_image).to(device))
+
+            # Skip if the HOG representation is smaller than the model.
+            if hog.shape[2] < w.shape[2] or hog.shape[3] < w.shape[3]:
+                continue
+                
+            # Apply the model convolutionally.
+            scores = model(hog)
+            scores = scores.to("cpu")
+            
+            # Get the boxes and reshape them into a N x 4 list.
+            boxes = scale * boxes_for_scores(model, scores[0])
+            boxes = boxes.reshape(4,-1).permute(1,0)
+            scores = scores.reshape(-1)
+            
+            # Store for later.
+            all_boxes.append(boxes)
+            all_scores.append(scores)
+            all_hogs.append(hog.to("cpu"))
+                                    
+        # Concatenate results.
+        return torch.cat(all_boxes, 0), torch.cat(all_scores, 0), all_hogs
+
 def load_data(meta_class='all'):
     imdb = torch.load('data/signs-data.pth')
     if meta_class is 'prohibitory':
@@ -330,54 +378,6 @@ def box_overlap(boxes1, boxes2, measure='iou'):
 
     overlaps = intersections / (areas1 + areas2 - intersections)
     return overlaps
-
-def detect_at_multiple_scales(w, scales, pil_image, use_gpu=False):
-    # Wrap parameters w in a convolutional layer.
-    model = nn.Conv2d(27, 1, w.shape[2:], bias=False)
-    model.weight.data = w
-    cell_size = hog_extractor.cell_size
-    
-    # Send model to GPU if needed.
-    device = torch.device("cuda" if use_gpu else "cpu")
-    hog_extractor_device = copy.deepcopy(hog_extractor).to(device)
-    model = model.to(device)
-
-    # Search for strong responses across different scales.
-    all_boxes = []
-    all_scores = []
-    all_hogs = []
-    for t, scale in enumerate(scales):
-        # Scale the input image.
-        size = [int(round(x/scale)) for x in pil_image.size]
-        scaled_image = pil_image.resize(size)
-
-        # Skip if the scaled image is smaller than 2 x 2 HOG cells.
-        if scaled_image.size[0] < 2*cell_size or scaled_image.size[1] < 2*cell_size:
-            continue
-
-        # Extract its HOG representation.
-        hog = hog_extractor_device(lab.pil_to_torch(scaled_image).to(device))
-
-        # Skip if the HOG representation is smaller than the model.
-        if hog.shape[2] < w.shape[2] or hog.shape[3] < w.shape[3]:
-            continue
-            
-        # Apply the model convolutionally.
-        scores = model(hog)
-        scores = scores.to("cpu")
-        
-        # Get the boxes and reshape them into a N x 4 list.
-        boxes = scale * boxes_for_scores(model, scores[0])
-        boxes = boxes.reshape(4,-1).permute(1,0)
-        scores = scores.reshape(-1)
-        
-        # Store for later.
-        all_boxes.append(boxes)
-        all_scores.append(scores)
-        all_hogs.append(hog.to("cpu"))
-                                 
-    # Concatenate results.
-    return torch.cat(all_boxes, 0), torch.cat(all_scores, 0), all_hogs
 
 def plot_box(box, color='y'):
     r1 = matplotlib.patches.Rectangle(box[:2],
