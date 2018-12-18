@@ -1,33 +1,17 @@
 name ?= practical-category-detection
-ver ?= 2018a
+ver ?= 2019a-pytorch
 
 code=\
-boxinclusion.m \
-boxoverlap.m \
-boxsuppress.m \
-detect.m \
-detectAtMultipleScales.m \
-evalDetections.m \
-evaluateModel.m \
-exercise1.m \
-exercise2.m \
-exercise3.m \
-exercise4.m \
-exercise5.m \
-extract.m \
-loadData.m \
-setup.m \
-README.md \
-vlfeat \
-matconvnet
+lab.py \
+practical.ipynb \
+README.md
 
-doc=\
-doc/images \
-doc/instructions.html
+doc=
 
 data=\
-data/signs.mat \
-data/signs-sample-image.jpg \
-data/signs
+data/signs-data.mat \
+data/mandatory.jpg \
+data/signs \
+data/cover.jpeg
 
 include extra/practical/Makefile
