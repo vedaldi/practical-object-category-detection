@@ -9,9 +9,9 @@ README.md
 doc=
 
 data=\
-data/signs-data.mat \
+data/cover.jpg \
 data/mandatory.jpg \
-data/signs \
-data/cover.jpeg
+data/signs-data.mat \
+data/signs
 
 include extra/practical/Makefile
