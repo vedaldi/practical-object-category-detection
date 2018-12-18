@@ -2,7 +2,7 @@
 
 mkdir -p data/tmp
 
-cp -vf extra/{mandatory,cover}.jpg data/
+cp -vf extra/{mandatory,cover,signs-sample-image}.jpg data/
 
 (
     cd data/tmp
