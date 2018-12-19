@@ -417,11 +417,20 @@ def pr(labels, scores, misses=0, plot=True):
 
     
 def eval_detections(gt_boxes, boxes, threshold=0.5, plot=False, gt_difficult=None):
+    if len(gt_boxes) == 0:
+        return {
+            'gt_to_box': [],
+            'box_to_gt': [-1]*len(boxes),
+            'labels': [-1]*len(boxes),
+            'misses': 0,
+        }
+
     with torch.no_grad():
-        # Compute the overlap between ground-truth boxes and detected ones
+
+        # Compute the overlap between ground-truth boxes and detected ones.
         overlaps = box_overlap(boxes, gt_boxes)
 
-        # Match each box to a gt box
+        # Match each box to a gt box.
         overlaps, box_to_gt = torch.max(overlaps, dim=1)
         matched = overlaps > threshold
         labels = -torch.ones(len(boxes))
