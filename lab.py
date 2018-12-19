@@ -517,7 +517,7 @@ def nms(boxes, scores):
         if best.item() <= float('-inf'):
             return retain
         retain[index] = 1
-        collision = (lab.box_overlap(boxes[index], boxes) > 0.5).reshape(-1)
+        collision = (box_overlap(boxes[index], boxes) > 0.5).reshape(-1)
         scores_= torch.where(collision, minf, scores_)
 
 def topn(boxes, scores, n):
