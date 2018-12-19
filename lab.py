@@ -272,7 +272,11 @@ class HOGNet(nn.ModuleDict):
             im = torch.clamp(im, weight.min(), weight.max())
         return im
 
-    def detect_at_multiple_scales(self, w, scales, pil_image, use_gpu=False):
+    def detect_at_multiple_scales(self, w, scales, pil_image, use_gpu=None):
+        # Decide if a GPU should be used.
+        if use_gpu is None:
+            use_gpu = torch.cuda.is_available()
+
         # Wrap parameters w in a convolutional layer.
         model = nn.Conv2d(27, 1, w.shape[2:], bias=False)
         model.weight.data = w
@@ -515,10 +519,10 @@ def nms(boxes, scores):
     while True:
         best, index = torch.max(scores_, 0)
         if best.item() <= float('-inf'):
-            return retain
+            return boxes[retain], scores[retain], retain
         retain[index] = 1
         collision = (box_overlap(boxes[index], boxes) > 0.5).reshape(-1)
-        scores_= torch.where(collision, minf, scores_)
+        scores_= torch.where(collision, minf, scores_)    
 
 def topn(boxes, scores, n):
     "Sort the boexes and return the top n"
@@ -558,8 +562,6 @@ def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negativ
     all_scores = []
     negs = []
     misses = 0
-    if use_gpu is None:
-        use_gpu = torch.cuda.is_available()
 
     if type(subset) is tuple:
         images = imdb[subset[0]]['images'][subset[1]:subset[2]]
