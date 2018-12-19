@@ -411,6 +411,7 @@ def pr(labels, scores, misses=0, plot=True):
         plt.ylim(0,1.01)
     return precision, recall, ap
 
+    
 def eval_detections(gt_boxes, boxes, threshold=0.5, plot=False, gt_difficult=None):
     with torch.no_grad():
         # Compute the overlap between ground-truth boxes and detected ones
@@ -505,3 +506,52 @@ def svm_sdca(x, c, lam=0.01, epsilon=0.0005, num_epochs=1000):
 
     return w, xb * b
 
+def evaluate_model(imdb, hog_extractor, model, scales, subset='val', collect_negatives=False, use_gpu=torch.cuda.is_available()):
+    "Evaluate the model by looping over the specivied subset of the image database."
+    # Loop over all images in the dataset
+    all_labels = []
+    all_scores = []
+    negs = []
+    misses = 0
+
+    if type(subset) is tuple:
+        images = imdb[subset[0]]['images'][subset[1]:subset[2]]
+        subset = subset[0]
+    else:
+        images = imdb[subset]['images']
+
+    for t, image in enumerate(images):
+        # Load the image
+        pil_image = Image.open(image)
+
+        # Pick all the gt boxes in the selected image
+        sel = [i for i, box_image in enumerate(imdb[subset]['box_images']) if box_image == image]
+        gt_boxes = imdb[subset]['boxes'][sel]
+
+        # Run the detector
+        boxes, scores, hogs= hog_extractor.detect_at_multiple_scales(w, scales, pil_image, use_gpu=use_gpu)
+        boxes, scores, perm = topn(boxes, scores, 100)
+        retain = nms(boxes, scores)
+        boxes = boxes[retain]
+        scores = scores[retain]
+        
+        # Evaluate the detector and plot the results
+        results = lab.eval_detections(gt_boxes, boxes)
+        all_labels.append(results['labels'])
+        all_scores.append(scores)
+        misses += results['misses']
+        
+        # Collect hard negatives if required
+        if collect_negatives:
+            negs += collect_hard_negatives(scales, hogs, boxes, results['labels'])
+
+        # Compute the per-image AP
+        _, _, ap = lab.pr(results['labels'], scores, misses=results['misses'], plot=False)
+        print(f"Evaluating on image {t+1:3d} of {len(images):3d} [{image:15s}]: AP: {ap*100:6.1f}%")
+        
+    return {
+        'labels' : torch.cat(all_labels, 0),
+        'scores' : torch.cat(all_scores, 0),
+        'misses' : misses,
+        'negatives' : negs,
+    }
