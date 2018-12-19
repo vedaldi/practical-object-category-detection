@@ -529,6 +529,28 @@ def topn(boxes, scores, n):
     boxes = torch.index_select(boxes, 0, perm)
     return boxes, scores, perm
 
+def collect_hard_negatives(scales, hogs, boxes, labels):
+    negs = []
+    for index in [i for i, label in enumerate(labels) if label == -1]:
+        # Get the next difficult box.
+        box = boxes[index]
+
+        # Reconstruct the scale level of this box.
+        cs = hog_extractor.cell_size
+        mh = model.kernel_size[0]
+        mw = model.kernel_size[1]
+        scale = (box[2] - box[0]) / (mh * cs)
+
+        # Find the corresponding level.
+        diffs = [(scale - s)**2 for s in scales]
+        level = diffs.index(min(diffs))
+
+        # Extract the HOG negative patch and save it.
+        u0 = int(box[0] / (cs * scale))
+        v0 = int(box[1] / (cs * scale))
+        negs.append(hogs[level][0, :, v0:v0+mh, u0:u0+mw][None,:])
+    return negs
+    
 def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negatives=False, use_gpu=None):
     "Evaluate the model by looping over the specivied subset of the image database."
     # Loop over all images in the dataset
