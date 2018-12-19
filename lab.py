@@ -506,7 +506,7 @@ def svm_sdca(x, c, lam=0.01, epsilon=0.0005, num_epochs=1000):
 
     return w, xb * b
 
-def evaluate_model(imdb, hog_extractor, model, scales, subset='val', collect_negatives=False, use_gpu=torch.cuda.is_available()):
+def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negatives=False, use_gpu=torch.cuda.is_available()):
     "Evaluate the model by looping over the specivied subset of the image database."
     # Loop over all images in the dataset
     all_labels = []
