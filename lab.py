@@ -506,6 +506,29 @@ def svm_sdca(x, c, lam=0.01, epsilon=0.0005, num_epochs=1000):
 
     return w, xb * b
 
+def nms(boxes, scores):
+    "Return a tensor of boolean values with True for the boxes to retain"
+    n = len(boxes)
+    scores_ = scores.clone()
+    retain = torch.zeros(n).byte()
+    minf = torch.tensor(float('-inf'))
+    while True:
+        best, index = torch.max(scores_, 0)
+        if best.item() <= float('-inf'):
+            return retain
+        retain[index] = 1
+        collision = (lab.box_overlap(boxes[index], boxes) > 0.5).reshape(-1)
+        scores_= torch.where(collision, minf, scores_)
+
+def topn(boxes, scores, n):
+    "Sort the boexes and return the top n"
+    n = min(n, len(boxes))
+    scores, perm = torch.sort(scores, descending=True)
+    perm = perm[:n]
+    scores = scores[:n]
+    boxes = torch.index_select(boxes, 0, perm)
+    return boxes, scores, perm
+    
 def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negatives=False, use_gpu=torch.cuda.is_available()):
     "Evaluate the model by looping over the specivied subset of the image database."
     # Loop over all images in the dataset
