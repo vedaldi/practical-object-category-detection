@@ -529,7 +529,7 @@ def topn(boxes, scores, n):
     boxes = torch.index_select(boxes, 0, perm)
     return boxes, scores, perm
 
-def collect_hard_negatives(hog_extractor, scales, hogs, boxes, labels):
+def collect_hard_negatives(hog_extractor, w, scales, hogs, boxes, labels):
     negs = []
     for index in [i for i, label in enumerate(labels) if label == -1]:
         # Get the next difficult box.
@@ -537,8 +537,8 @@ def collect_hard_negatives(hog_extractor, scales, hogs, boxes, labels):
 
         # Reconstruct the scale level of this box.
         cs = hog_extractor.cell_size
-        mh = model.kernel_size[0]
-        mw = model.kernel_size[1]
+        mh = w.shape[2]
+        mw = w.shape[3]
         scale = (box[2] - box[0]) / (mh * cs)
 
         # Find the corresponding level.
@@ -590,7 +590,7 @@ def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negativ
         
         # Collect hard negatives if required
         if collect_negatives:
-            negs += collect_hard_negatives(hog_extractor, scales, hogs, boxes, results['labels'])
+            negs += collect_hard_negatives(hog_extractor, w, scales, hogs, boxes, results['labels'])
 
         # Compute the per-image AP
         _, _, ap = pr(results['labels'], scores, misses=results['misses'], plot=False)
