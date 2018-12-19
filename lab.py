@@ -528,14 +528,16 @@ def topn(boxes, scores, n):
     scores = scores[:n]
     boxes = torch.index_select(boxes, 0, perm)
     return boxes, scores, perm
-    
-def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negatives=False, use_gpu=torch.cuda.is_available()):
+
+def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negatives=False, use_gpu=None):
     "Evaluate the model by looping over the specivied subset of the image database."
     # Loop over all images in the dataset
     all_labels = []
     all_scores = []
     negs = []
     misses = 0
+    if use_gpu is None:
+        use_gpu = torch.cuda.is_available()
 
     if type(subset) is tuple:
         images = imdb[subset[0]]['images'][subset[1]:subset[2]]
@@ -559,7 +561,7 @@ def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negativ
         scores = scores[retain]
         
         # Evaluate the detector and plot the results
-        results = lab.eval_detections(gt_boxes, boxes)
+        results = eval_detections(gt_boxes, boxes)
         all_labels.append(results['labels'])
         all_scores.append(scores)
         misses += results['misses']
@@ -569,7 +571,7 @@ def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negativ
             negs += collect_hard_negatives(scales, hogs, boxes, results['labels'])
 
         # Compute the per-image AP
-        _, _, ap = lab.pr(results['labels'], scores, misses=results['misses'], plot=False)
+        _, _, ap = pr(results['labels'], scores, misses=results['misses'], plot=False)
         print(f"Evaluating on image {t+1:3d} of {len(images):3d} [{image:15s}]: AP: {ap*100:6.1f}%")
         
     return {
