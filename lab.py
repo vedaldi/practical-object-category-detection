@@ -210,7 +210,7 @@ class HOGNet(nn.ModuleDict):
         # reference directions.
         cosines = oriented_gradients * factors
 
-        # Recover the angles from the cosines and compute the bins
+        # Recover the angles from the cosines and compute the bins.
         if False:
             cosines = torch.clamp(cosines, -1, 1)
             angles = torch.acos(cosines)
@@ -231,12 +231,12 @@ class HOGNet(nn.ModuleDict):
         # Compute the unoriented gradient cells
         ucells = cells[:,:self.num_orientations,:,:] + cells[:,self.num_orientations:,:,:]
 
-        # Comptue the norm of 2 x 2 blocks of unoriented gradient cells
+        # Comptue the norm of 2 x 2 blocks of unoriented gradient cells.
         squares = ucells * ucells
         sums = self['block_pool'](squares)
         norms = torch.sqrt(torch.clamp(sums, min=1e-6))
 
-        # Put unoriented and oriented gradients together
+        # Put unoriented and oriented gradients together.
         cells = torch.cat((cells,ucells),1)
 
         # Normalize and clmap each cell as if part of each 2x2 block 
@@ -580,9 +580,7 @@ def evaluate_model(imdb, hog_extractor, w, scales, subset='val', collect_negativ
         # Run the detector
         boxes, scores, hogs= hog_extractor.detect_at_multiple_scales(w, scales, pil_image, use_gpu=use_gpu)
         boxes, scores, perm = topn(boxes, scores, 100)
-        retain = nms(boxes, scores)
-        boxes = boxes[retain]
-        scores = scores[retain]
+        boxes, scores, _ = nms(boxes, scores)
         
         # Evaluate the detector and plot the results
         results = eval_detections(gt_boxes, boxes)
