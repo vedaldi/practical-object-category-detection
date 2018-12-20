@@ -217,11 +217,12 @@ class HOGNet(nn.ModuleDict):
         cosines = oriented_gradients * factors
 
         # Recover the angles from the cosines and compute the bins.
-        if False:
+        if True: # CHANGE BACK FOR SPEED
             cosines = torch.clamp(cosines, -1, 1)
             angles = torch.acos(cosines)
             bin_weights = 1 - (2 * self.num_orientations)/(2 * math.pi) * angles
         else:
+            # Faster approximation without acos    
             # cos x = y ~ 1 - x^2/2
             # acos y ~ sqrt(2*(x - 1))
             cosines = torch.clamp(cosines, max=1)
@@ -241,7 +242,8 @@ class HOGNet(nn.ModuleDict):
         squares = ucells * ucells
         squares = self['padding'](squares)
         sums = self['block_pool'](squares)
-        norms = torch.sqrt(torch.clamp(sums, min=1e-6))
+        #norms = torch.sqrt(torch.clamp(sums, min=1e-6))
+        norms = torch.sqrt(sums + 1e-4)
 
         # Put unoriented and oriented gradients together.
         cells = torch.cat((cells,ucells),1)
