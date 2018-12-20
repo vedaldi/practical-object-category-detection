@@ -151,14 +151,14 @@ class HOGNet(nn.ModuleDict):
             # stride=self.cell_size, padding=self.cell_size//2, bias=False, groups=2 * no)
             # self['spatial_pool'].weight.data = bilinear_filter
 
-            # 2x2 block pooling
+            # 2x2 block pooling.
             self['block_pool'] = nn.Conv2d(self.num_orientations, 1, 2, bias=False)
             self['block_pool'].weight.data = torch.ones(1,self.num_orientations,2,2)
 
-            # (1,1,1,1) replication padding
+            # (1,1,1,1) replication padding.
             self['padding'] = nn.ReplicationPad2d(1)
 
-            # Glyphs for rendering the descriptor
+            # Glyphs for rendering the descriptor.
             gs = 21
             u = torch.linspace(-1,1,gs).reshape(-1,1).expand(-1,gs)
             v = u.t()
@@ -184,7 +184,7 @@ class HOGNet(nn.ModuleDict):
                 imarraysc(t2im(glyphs))
                 plt.pause(0)            
 
-    def compute_oriented_gradients(self, im):
+    def compute_oriented_gradients(self, im):        
         if im.shape[1] == 1:
             du = self['du'](im)
             dv = self['dv'](im)
@@ -196,6 +196,12 @@ class HOGNet(nn.ModuleDict):
             n2, indices = torch.max(n2, 1, keepdim=True)
             du = torch.gather(du, 1, indices)
             dv = torch.gather(dv, 1, indices)
+
+        # Delete boundary pixel gradients as they are subject to boundary effects.
+        n2[:,:,+0,:] = 0
+        n2[:,:,-1,:] = 0
+        n2[:,:,:,+0] = 0
+        n2[:,:,:,-1] = 0
 
         oriented_gradients = self['orient'](torch.cat((du,dv), 1))
         return oriented_gradients, n2
@@ -228,11 +234,12 @@ class HOGNet(nn.ModuleDict):
         return norms * bins
 
     def block_normalization(self, cells):
-        # Compute the unoriented gradient cells
+        # Compute the unoriented gradient cells.
         ucells = cells[:,:self.num_orientations,:,:] + cells[:,self.num_orientations:,:,:]
 
         # Comptue the norm of 2 x 2 blocks of unoriented gradient cells.
         squares = ucells * ucells
+        squares = self['padding'](squares)
         sums = self['block_pool'](squares)
         norms = torch.sqrt(torch.clamp(sums, min=1e-6))
 
@@ -242,7 +249,7 @@ class HOGNet(nn.ModuleDict):
         # Normalize and clmap each cell as if part of each 2x2 block 
         # individually, then average the results.
         factors = 1 / norms
-        factors = self['padding'](factors)
+        #factors = self['padding'](factors)
         
         ncells = (
             torch.clamp(cells * factors[:, :, :-1, :-1], max=0.2) +
@@ -323,6 +330,13 @@ class HOGNet(nn.ModuleDict):
         # Concatenate results.
         return torch.cat(all_boxes, 0), torch.cat(all_scores, 0), all_hogs
 
+def flip_hog(hog):
+    no = 9	
+    o = torch.arange(no).long()
+    op = no - o
+    perm = torch.cat((op, (op + no) % (2*no), (op % no) + (2*no)),0)
+    return hog[:,perm,:,:].flip(3)
+
 def load_data(meta_class='all'):
     imdb = torch.load('data/signs-data.pth')
     if meta_class is 'prohibitory':
@@ -335,7 +349,6 @@ def load_data(meta_class='all'):
         meta_labels = range(43)
     else:
         raise ValueError('The value of meta_label is not recognized.')
-
     for subset in ['train', 'val']:
         labels = [x.item() for x in imdb[subset]['box_labels']]
         sel = [i for i, x in enumerate(labels) if x in meta_labels]
@@ -344,7 +357,6 @@ def load_data(meta_class='all'):
         imdb[subset]['box_labels'] = imdb[subset]['box_labels'][sel]
         imdb[subset]['box_patches'] = imdb[subset]['box_patches'][sel,:,:,:]
         imdb[subset]['images'] = sorted(list(set(imdb[subset]['box_images'])))
-
     return imdb
 
 def boxes_for_scores(model, scores, cell_size=8):
@@ -420,8 +432,8 @@ def eval_detections(gt_boxes, boxes, threshold=0.5, plot=False, gt_difficult=Non
     if len(gt_boxes) == 0:
         return {
             'gt_to_box': [],
-            'box_to_gt': [-1]*len(boxes),
-            'labels': [-1]*len(boxes),
+            'box_to_gt': torch.tensor([-1]*len(boxes)),
+            'labels': torch.tensor([-1]*len(boxes)),
             'misses': 0,
         }
 
