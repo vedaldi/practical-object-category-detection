@@ -217,12 +217,13 @@ class HOGNet(nn.ModuleDict):
         cosines = oriented_gradients * factors
 
         # Recover the angles from the cosines and compute the bins.
-        if True: # CHANGE BACK FOR SPEED
+        if False:
+            # This is slightly closer to the original implementation.
             cosines = torch.clamp(cosines, -1, 1)
             angles = torch.acos(cosines)
             bin_weights = 1 - (2 * self.num_orientations)/(2 * math.pi) * angles
         else:
-            # Faster approximation without acos    
+            # Faster approximation without acos. Good to 1e-4 error w.r.t original.
             # cos x = y ~ 1 - x^2/2
             # acos y ~ sqrt(2*(x - 1))
             cosines = torch.clamp(cosines, max=1)
