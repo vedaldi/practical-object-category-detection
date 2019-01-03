@@ -6,7 +6,7 @@ cp -vf extra/{mandatory,cover,signs-sample-image}.jpg data/
 
 (
     cd data/tmp
-    wget -c nc http://benchmark.ini.rub.de/Dataset_GTSDB/TrainIJCNN2013.zip
+    wget -c -nc http://benchmark.ini.rub.de/Dataset_GTSDB/TrainIJCNN2013.zip
     unzip -n TrainIJCNN2013.zip
 )
 
